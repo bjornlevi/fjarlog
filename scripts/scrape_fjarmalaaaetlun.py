@@ -67,69 +67,50 @@ def extract_documents_from_page(start_year: int, end_year: int) -> List[Dict]:
 
         soup = BeautifulSoup(response.content, "html.parser")
 
-        # Look for download links (typically XLSX or Excel files for budget plans)
+        # Look for /library/ URLs with data file patterns (Talnagögn or Töflur)
         for link in soup.find_all("a"):
             href = link.get("href", "")
-            text = link.get_text(strip=True)
 
-            if not href or not text:
+            if not href or "/library/" not in href:
                 continue
 
-            # Look for Excel/XLSX links or any document links with "tillaga" or "áætlun"
-            is_excel = any(
-                ext in href.lower() for ext in [".xlsx", ".xls", ".excel"]
-            )
-            is_plan_doc = any(
-                keyword in text.lower()
-                for keyword in ["tillaga", "áætlun", "fjármála", "fjarmala"]
+            # Check if URL contains data file keywords
+            url_lower = href.lower()
+            has_data_keywords = any(
+                keyword in url_lower
+                for keyword in ["talnag", "toflu", "fjárlög", "fjarlög"]
             )
 
-            if is_excel or is_plan_doc:
-                # Make absolute URL if relative
-                if href.startswith(("http://", "https://")):
-                    full_url = href
-                else:
-                    full_url = urljoin(BASE_URL, href)
+            if not has_data_keywords:
+                continue
 
-                # Determine format
-                fmt = "xlsx" if is_excel else "pdf"
+            # Determine format from file extension
+            fmt = None
+            if url_lower.endswith(".csv"):
+                fmt = "csv"
+            elif url_lower.endswith((".xlsx", ".xls")):
+                fmt = "xlsx"
+            else:
+                continue
 
-                logger.info(
-                    f"Found {start_year}-{end_year}: {text} -> {full_url}"
-                )
-                documents.append(
-                    {
-                        "title": text,
-                        "year": start_year,
-                        "period": (start_year, end_year),
-                        "url": full_url,
-                        "format": fmt,
-                    }
-                )
+            # Make absolute URL if relative
+            if href.startswith(("http://", "https://")):
+                full_url = href
+            else:
+                full_url = urljoin(BASE_URL, href)
 
-        # Fallback: look for any Excel links
-        if not documents:
-            for link in soup.find_all("a", href=re.compile(r"\.(xlsx?|xls)$", re.I)):
-                href = link.get("href", "")
-                if href:
-                    full_url = urljoin(BASE_URL, href)
-                    text = (
-                        link.get_text(strip=True)
-                        or f"Tillaga til fjármálaáætlunar {start_year}-{end_year}"
-                    )
-                    fmt = "xlsx" if "xlsx" in href.lower() else "xls"
-                    logger.info(
-                        f"Found {start_year}-{end_year} (fallback): {text} -> {full_url}"
-                    )
-                    documents.append(
-                        {
-                            "title": text,
-                            "year": start_year,
-                            "period": (start_year, end_year),
-                            "url": full_url,
-                            "format": fmt,
-                        }
-                    )
+            logger.info(
+                f"Found {start_year}-{end_year} ({fmt}): {full_url}"
+            )
+            documents.append(
+                {
+                    "title": f"Tillaga til fjármálaáætlunar {start_year}-{end_year} ({fmt.upper()})",
+                    "year": start_year,
+                    "period": (start_year, end_year),
+                    "url": full_url,
+                    "format": fmt,
+                }
+            )
 
     except requests.RequestException as e:
         logger.warning(f"Failed to fetch {start_year}-{end_year} page: {e}")
