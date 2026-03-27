@@ -130,7 +130,9 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
 
 def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
     """
-    Extract budget data from a CSV file.
+    Extract budget data from a CSV file (semicolon-delimited Icelandic budget data).
+
+    Columns: Ár, Afurð, FlokkunNy, Málefnasvið, Málaflokkur, Ráðuneyti, Liður, Viðfang, TegundNota, Upphæð
 
     Args:
         file_path: Path to the CSV file
@@ -152,43 +154,50 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
         year = int(match.group(1))
         doc_id = f"bill_{year}"
 
-        # Read CSV file
-        df = pd.read_csv(file_path)
+        # Read CSV file with semicolon delimiter
+        df = pd.read_csv(file_path, sep=";", encoding="utf-8-sig")
 
         logger.info(f"  Shape: {df.shape}")
         logger.info(f"  Columns: {df.columns.tolist()}")
 
         result_rows = []
 
-        # Extract rows - assuming first column is institution, second is category, rest are amounts
+        # Expected columns: Ár, Afurð, FlokkunNy, Málefnasvið, Málaflokkur, Ráðuneyti, Liður, Viðfang, TegundNota, Upphæð
+        if len(df.columns) < 10:
+            logger.warning(f"  CSV has unexpected structure: {len(df.columns)} columns")
+            return None
+
+        # Extract rows
         for idx, row in df.iterrows():
             # Skip empty rows
             if row.isnull().all():
                 continue
 
-            # Try to extract institution and budget line
-            institution = str(row.iloc[0]) if pd.notna(row.iloc[0]) else "Unknown"
-            budget_line = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else "Total"
+            try:
+                # Column indices (0-based)
+                # 0: Ár (Year), 5: Ráðuneyti (Ministry), 4: Málaflokkur (Category), 9: Upphæð (Amount)
+                row_year = int(row.iloc[0]) if pd.notna(row.iloc[0]) else None
+                institution = str(row.iloc[5]).strip() if pd.notna(row.iloc[5]) else "Unknown"
+                budget_line = str(row.iloc[4]).strip() if pd.notna(row.iloc[4]) else str(row.iloc[8]).strip()
 
-            # Find first numeric value as amount
-            amount = None
-            for val in row:
-                if pd.notna(val):
-                    try:
-                        amount = float(str(val).replace(",", "").replace(".", ""))
-                        break
-                    except (ValueError, AttributeError):
-                        continue
+                # Parse amount - handle Icelandic number format (comma as decimal, period as thousands)
+                amount_str = str(row.iloc[9]).strip() if pd.notna(row.iloc[9]) else "0"
+                amount_str = amount_str.replace(".", "").replace(",", ".")
+                amount = float(amount_str)
 
-            if amount is not None:
-                result_rows.append({
-                    "year": year,
-                    "source_type": "bill",
-                    "document_id": doc_id,
-                    "institution": institution,
-                    "budget_line": budget_line,
-                    "amount": amount,
-                })
+                # Only include positive amounts (exclude zeros and negative values)
+                if amount > 0 and row_year == year:
+                    result_rows.append({
+                        "year": year,
+                        "source_type": "bill",
+                        "document_id": doc_id,
+                        "institution": institution,
+                        "budget_line": budget_line,
+                        "amount": amount,
+                    })
+            except (ValueError, IndexError) as e:
+                logger.debug(f"  Skipping row {idx}: {e}")
+                continue
 
         if result_rows:
             logger.info(f"  Extracted {len(result_rows)} records")

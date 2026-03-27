@@ -34,7 +34,10 @@ def find_xlsx_files() -> List[Path]:
 
 def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
     """
-    Extract budget data from an XLSX file.
+    Extract budget data from an XLSX file (budget plan format).
+
+    Budget plan format: first column = budget line categories,
+    subsequent columns = year estimates, with headers like "Áætlun 2025"
 
     Args:
         file_path: Path to the XLSX file
@@ -58,12 +61,20 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
                 break
 
         if not data_sheet:
+            # Use first sheet that's not a table of contents
+            for sheet_name in xls.sheet_names:
+                if "tafla" in sheet_name.lower() or "tafl" in sheet_name.lower():
+                    data_sheet = sheet_name
+                    break
+
+        if not data_sheet:
             data_sheet = xls.sheet_names[0]
 
         logger.info(f"  Using sheet: {data_sheet}")
 
-        # Read the sheet
-        df = pd.read_excel(file_path, sheet_name=data_sheet, engine='openpyxl')
+        # Read the sheet - try row 3 (index 2) as header first
+        # This works for budget plan files where row 3 contains the year headers
+        df = pd.read_excel(file_path, sheet_name=data_sheet, engine='openpyxl', header=2)
 
         logger.info(f"  Shape: {df.shape}")
         logger.info(f"  Columns: {df.columns.tolist()}")
@@ -78,37 +89,74 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
             logger.warning(f"Could not parse year from filename: {file_path.name}")
             return None
 
-        # For now, create a simple extraction that captures the basic structure
-        # This may need refinement based on actual data structure
         result_rows = []
 
-        # Try to standardize the data
+        # First column contains budget line categories
+        category_col = df.columns[0]
+
+        # Find columns for the plan period years
+        # Headers might be like "Áætlun 2025" or just "2025"
+        year_columns = {}
+        for col in df.columns[1:]:
+            col_str = str(col).strip()
+            # Handle multiline headers by replacing newlines
+            col_str = col_str.replace('\n', ' ').replace('  ', ' ')
+
+            # Look for year patterns
+            year_match = re.search(r'(\d{4})', col_str)
+            if year_match:
+                year = int(year_match.group(1))
+                # Only include years in the plan period
+                if start_year <= year <= end_year:
+                    year_columns[year] = col
+                    logger.debug(f"  Found year {year} in column '{col}' ({col_str})")
+
+        logger.info(f"  Found plan columns for years: {sorted(year_columns.keys())}")
+
+        if not year_columns:
+            logger.warning(f"  No plan year columns found in sheet")
+            return None
+
+        # Iterate through rows and extract budget lines
         for idx, row in df.iterrows():
-            # Skip empty rows
-            if row.isnull().all():
+            budget_line = row[category_col]
+
+            # Skip empty rows and header rows
+            if pd.isna(budget_line):
                 continue
 
-            # Create a record for each year in the plan period
-            for year in range(start_year, end_year + 1):
-                # Try to find amount columns (usually numeric)
-                amount = None
+            budget_line = str(budget_line).strip()
+            if not budget_line or budget_line.startswith("Unnamed") or len(budget_line) < 2:
+                continue
 
-                # Look for numeric columns that might represent amounts
-                for col in df.columns:
-                    val = row[col]
-                    if pd.notna(val) and isinstance(val, (int, float)):
-                        amount = val
-                        break
+            # Extract amounts for each planned year
+            for year, year_col in year_columns.items():
+                val = row[year_col]
 
-                if amount is not None:
-                    result_rows.append({
-                        "year": year,
-                        "source_type": "plan",
-                        "document_id": doc_id,
-                        "institution": str(row[df.columns[0]]) if pd.notna(row[df.columns[0]]) else "Unknown",
-                        "budget_line": str(row[df.columns[1]]) if len(df.columns) > 1 and pd.notna(row[df.columns[1]]) else "Total",
-                        "amount": amount,
-                    })
+                if pd.notna(val):
+                    try:
+                        # Parse amount (handle numeric and string formats)
+                        if isinstance(val, (int, float)):
+                            amount = float(val)
+                        else:
+                            amount_str = str(val).strip()
+                            # Handle Icelandic number format (comma decimal, period thousands)
+                            amount_str = amount_str.replace(".", "").replace(",", ".")
+                            amount = float(amount_str)
+
+                        # Only include non-zero amounts
+                        if amount != 0:
+                            result_rows.append({
+                                "year": year,
+                                "source_type": "plan",
+                                "document_id": doc_id,
+                                "institution": "Government",
+                                "budget_line": budget_line,
+                                "amount": amount,
+                            })
+                    except (ValueError, AttributeError) as e:
+                        logger.debug(f"  Skipping value at row {idx}, year {year}: {e}")
+                        continue
 
         if result_rows:
             logger.info(f"  Extracted {len(result_rows)} records")
