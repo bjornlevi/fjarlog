@@ -112,6 +112,25 @@ async def extract_documents() -> List[Dict]:
             logger.info(f"Found {len(csv_links)} CSV links: {csv_links[:3]}")
             logger.info(f"Found {len(xlsx_links)} XLSX links: {xlsx_links[:3]}")
 
+            # If no links found via href, search page content for CSV/XLSX URLs
+            if not csv_links and not xlsx_links:
+                logger.info("No links found via href attributes, searching page content for URLs...")
+
+                # Find all CSV and XLSX URLs in the page HTML
+                all_csv_urls = re.findall(r'https?://[^\s"\'<>]*\.csv[^\s"\'<>]*', content)
+                all_xlsx_urls = re.findall(r'https?://[^\s"\'<>]*\.xlsx?[^\s"\'<>]*', content)
+
+                logger.info(f"Found {len(all_csv_urls)} CSV URLs in page content")
+                logger.info(f"Found {len(all_xlsx_urls)} XLSX URLs in page content")
+
+                if all_csv_urls:
+                    logger.info(f"Sample CSV URLs: {all_csv_urls[:3]}")
+                if all_xlsx_urls:
+                    logger.info(f"Sample XLSX URLs: {all_xlsx_urls[:3]}")
+
+                csv_links = all_csv_urls
+                xlsx_links = all_xlsx_urls
+
             # Find all year headers
             year_matches = list(re.finditer(r"Ríkisreikningur\s+gögn\s+árið\s+(\d{4})", content, re.IGNORECASE))
             logger.info(f"Found {len(year_matches)} year entries")
