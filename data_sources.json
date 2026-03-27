@@ -14,9 +14,9 @@
       {
         "id": "bill_2025",
         "year": 2025,
-        "title": "Fjárlög 2025",
-        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/FJR_Fjarlog_2025_sam%c3%beykkt.pdf",
-        "format": "pdf",
+        "title": "Talnagögn úr fjárlagafrumvarpi 2025",
+        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/Talnag%c3%b6gn%20%c3%bar%20fj%c3%a1rlagafrumvarpi%20-%20003.csv",
+        "format": "csv",
         "status": "active"
       },
       {
@@ -100,8 +100,8 @@
       {
         "id": "plan_2025_2029",
         "year": 2025,
-        "title": "Forsíða fjármálaáætlunar",
-        "url": "https://www.stjornarradid.is/verkefni/opinber-fjarmal/fjarmalaaaetlun/fjarmalaaaetlun-2025-2029/",
+        "title": "Töfluviðauki fjármálaáætlunar 2025-2029",
+        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/T%c3%b6fluvi%c3%b0auki%20fj%c3%a1rm%c3%a1la%c3%a1%c3%a6tlunar%202025-2029%20-%20Copy%20(1).xlsx",
         "format": "xlsx",
         "status": "active"
       },
