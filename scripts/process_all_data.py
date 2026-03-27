@@ -20,7 +20,7 @@ SCRIPT_DIR = Path(__file__).parent
 PROCESSING_STEPS = [
     ("Budget Plans", "process_plans.py"),
     ("Budget Bills", "process_bills.py"),
-    ("Budget Accounts", "process_accounts.py"),
+    # ("Budget Accounts", "process_accounts.py"),  # Skipped - URLs not available via automated scraping
     ("Build Comparison", "build_comparison.py"),
 ]
 

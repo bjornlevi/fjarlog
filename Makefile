@@ -45,8 +45,9 @@ scrape-plans:
 	$(PYTHON) $(SCRIPTS_DIR)/scrape_fjarmalaaaetlun.py
 
 scrape-accounts:
-	@echo "Scraping budget accounts (Ríkisreikningur)..."
-	$(PYTHON) $(SCRIPTS_DIR)/scrape_rikisreikningur.py
+	@echo "Note: Budget account URLs are dynamically generated and cannot be automated."
+	@echo "Please manually add account URLs to data_sources.json if needed."
+	@echo "Skipping automated scraping for budget accounts."
 
 download:
 	@echo "Downloading documents to landing zone..."
