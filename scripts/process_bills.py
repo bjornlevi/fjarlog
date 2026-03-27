@@ -64,7 +64,7 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
         doc_id = f"bill_{year}"
 
         # Read Excel file
-        xls = pd.ExcelFile(file_path)
+        xls = pd.ExcelFile(file_path, engine='openpyxl')
         logger.info(f"  Sheets: {xls.sheet_names}")
 
         # Try to find the main data sheet
@@ -80,7 +80,7 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
         logger.info(f"  Using sheet: {data_sheet}")
 
         # Read the sheet
-        df = pd.read_excel(file_path, sheet_name=data_sheet)
+        df = pd.read_excel(file_path, sheet_name=data_sheet, engine='openpyxl')
 
         logger.info(f"  Shape: {df.shape}")
 

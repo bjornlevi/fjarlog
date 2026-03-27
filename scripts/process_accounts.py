@@ -136,14 +136,14 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
         doc_id = f"accounts_{year}"
 
         # Read XLSX file
-        xls = pd.ExcelFile(file_path)
+        xls = pd.ExcelFile(file_path, engine='openpyxl')
         logger.info(f"  Sheets: {xls.sheet_names}")
 
         # Try to find the main data sheet
         data_sheet = xls.sheet_names[0]
 
         # Read the sheet
-        df = pd.read_excel(file_path, sheet_name=data_sheet)
+        df = pd.read_excel(file_path, sheet_name=data_sheet, engine='openpyxl')
 
         logger.info(f"  Shape: {df.shape}")
 
