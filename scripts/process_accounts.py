@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Extract budget line items from CSV/XLSX budget account data files into parquet format.
+Extract budget account data from Ríkisreikningur (government accounts) CSV files into parquet format.
 Part of the silver layer processing.
+
+Data columns: institution, budget line, amount (actual spending)
 """
 
 import logging
@@ -28,18 +30,15 @@ PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def find_csv_files() -> List[Path]:
-    """Find all CSV files in the budget accounts landing directory."""
-    return sorted(LANDING_DIR.glob("*/*.csv"))
-
-
-def find_xlsx_files() -> List[Path]:
-    """Find all XLSX files in the budget accounts landing directory."""
-    return sorted(LANDING_DIR.glob("*/*.xlsx"))
+    """Find all Ríkisreikningur CSV files in the budget accounts landing directory."""
+    return sorted(LANDING_DIR.glob("*.csv"))
 
 
 def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
     """
-    Extract budget data from a CSV file.
+    Extract budget account data from a Ríkisreikningur CSV file.
+
+    CSV columns: TimabilAr, RaduneytiHeiti, StofnunHeiti, MalaflokkurHeiti, Samtals (amount)
 
     Args:
         file_path: Path to the CSV file
@@ -49,105 +48,30 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
         Or None if extraction fails
     """
     try:
-        logger.info(f"Processing CSV: {file_path.name}")
+        logger.info(f"Processing: {file_path.name}")
 
-        # Extract year from parent directory name
-        year_dir = file_path.parent.name
-        match = re.search(r"(\d{4})", year_dir)
+        # Extract year from filename (e.g., Rikisreikningur_gogn_2025_06.csv or Rikisreikningur_gogn_2024.csv)
+        match = re.search(r"(\d{4})", file_path.name)
         if not match:
-            logger.warning(f"Could not parse year from directory: {year_dir}")
+            logger.warning(f"Could not parse year from filename: {file_path.name}")
             return None
 
         year = int(match.group(1))
         doc_id = f"accounts_{year}"
 
         # Read CSV file
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, encoding='utf-8-sig')
 
         logger.info(f"  Shape: {df.shape}")
         logger.info(f"  Columns: {df.columns.tolist()}")
 
         result_rows = []
 
-        # Extract rows - assuming first column is institution, second is category, rest are amounts
-        for idx, row in df.iterrows():
-            # Skip empty rows
-            if row.isnull().all():
-                continue
-
-            # Try to extract institution and budget line
-            institution = str(row.iloc[0]) if pd.notna(row.iloc[0]) else "Unknown"
-            budget_line = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else "Total"
-
-            # Find first numeric value as amount
-            amount = None
-            for val in row:
-                if pd.notna(val):
-                    try:
-                        amount = float(str(val).replace(",", "").replace(".", ""))
-                        break
-                    except (ValueError, AttributeError):
-                        continue
-
-            if amount is not None:
-                result_rows.append({
-                    "year": year,
-                    "source_type": "accounts",
-                    "document_id": doc_id,
-                    "institution": institution,
-                    "budget_line": budget_line,
-                    "amount": amount,
-                })
-
-        if result_rows:
-            logger.info(f"  Extracted {len(result_rows)} records")
-            return pd.DataFrame(result_rows)
-        else:
-            logger.warning(f"  No records extracted from {file_path.name}")
+        # Expected columns for Ríkisreikningur data
+        required_cols = ['TimabilAr', 'RaduneytiHeiti', 'MalaflokkurHeiti', 'Samtals']
+        if not all(col in df.columns for col in required_cols):
+            logger.warning(f"  Missing expected columns. Found: {df.columns.tolist()}")
             return None
-
-    except Exception as e:
-        logger.error(f"Error processing CSV {file_path.name}: {e}")
-        return None
-
-
-def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
-    """
-    Extract budget data from an XLSX file.
-
-    Args:
-        file_path: Path to the XLSX file
-
-    Returns:
-        DataFrame with columns: year, source_type, document_id, institution, budget_line, amount
-        Or None if extraction fails
-    """
-    try:
-        logger.info(f"Processing XLSX: {file_path.name}")
-
-        # Extract year from parent directory name
-        year_dir = file_path.parent.name
-        match = re.search(r"(\d{4})", year_dir)
-        if not match:
-            logger.warning(f"Could not parse year from directory: {year_dir}")
-            return None
-
-        year = int(match.group(1))
-        doc_id = f"accounts_{year}"
-
-        # Read XLSX file
-        xls = pd.ExcelFile(file_path, engine='openpyxl')
-        logger.info(f"  Sheets: {xls.sheet_names}")
-
-        # Try to find the main data sheet
-        data_sheet = xls.sheet_names[0]
-
-        # Read the sheet
-        df = pd.read_excel(file_path, sheet_name=data_sheet, engine='openpyxl')
-
-        logger.info(f"  Shape: {df.shape}")
-
-        result_rows = []
 
         # Extract rows
         for idx, row in df.iterrows():
@@ -155,29 +79,43 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
             if row.isnull().all():
                 continue
 
-            # Extract institution and amount
-            institution = str(row.iloc[0]) if pd.notna(row.iloc[0]) else "Unknown"
-            budget_line = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else "Total"
+            try:
+                # Get year from data (should match file year)
+                row_year = int(row['TimabilAr']) if pd.notna(row['TimabilAr']) else None
+                if row_year != year:
+                    continue
 
-            # Find first numeric value as amount
-            amount = None
-            for val in row:
-                if pd.notna(val):
+                # Get institution (ministry)
+                institution = str(row['RaduneytiHeiti']).strip() if pd.notna(row['RaduneytiHeiti']) else "Unknown"
+
+                # Get budget line (category)
+                budget_line = str(row['MalaflokkurHeiti']).strip() if pd.notna(row['MalaflokkurHeiti']) else "Unknown"
+
+                # Get amount (actual spending)
+                amount = None
+                if pd.notna(row['Samtals']):
                     try:
-                        amount = float(str(val).replace(",", "").replace(".", ""))
-                        break
-                    except (ValueError, AttributeError):
-                        continue
+                        amount = float(row['Samtals'])
+                    except (ValueError, TypeError):
+                        amount_str = str(row['Samtals']).strip()
+                        # Handle Icelandic number format (comma as decimal, period as thousands)
+                        amount_str = amount_str.replace(".", "").replace(",", ".")
+                        amount = float(amount_str)
 
-            if amount is not None:
-                result_rows.append({
-                    "year": year,
-                    "source_type": "accounts",
-                    "document_id": doc_id,
-                    "institution": institution,
-                    "budget_line": budget_line,
-                    "amount": amount,
-                })
+                # Only include non-zero amounts
+                if amount is not None and amount != 0:
+                    result_rows.append({
+                        "year": year,
+                        "source_type": "accounts",
+                        "document_id": doc_id,
+                        "institution": institution,
+                        "budget_line": budget_line,
+                        "amount": amount,
+                    })
+
+            except (ValueError, IndexError, KeyError) as e:
+                logger.debug(f"  Skipping row {idx}: {e}")
+                continue
 
         if result_rows:
             logger.info(f"  Extracted {len(result_rows)} records")
@@ -187,27 +125,23 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
             return None
 
     except Exception as e:
-        logger.error(f"Error processing XLSX {file_path.name}: {e}")
+        logger.error(f"Error processing {file_path.name}: {e}")
         return None
 
 
 def process_all_accounts() -> None:
-    """Process all budget account data files (CSV and XLSX)."""
+    """Process all Ríkisreikningur budget account data files."""
     csv_files = find_csv_files()
-    xlsx_files = find_xlsx_files()
 
-    all_files = csv_files + xlsx_files
-
-    if not all_files:
-        logger.warning(f"No account data files found in {LANDING_DIR}")
+    if not csv_files:
+        logger.warning(f"No CSV files found in {LANDING_DIR}")
         return
 
-    logger.info(f"Found {len(all_files)} account data files to process ({len(csv_files)} CSV, {len(xlsx_files)} XLSX)")
+    logger.info(f"Found {len(csv_files)} account data files to process")
 
     processed_count = 0
     processed_years = set()
 
-    # Process CSV files
     for file_path in csv_files:
         df = extract_from_csv(file_path)
 
@@ -220,20 +154,7 @@ def process_all_accounts() -> None:
                 processed_count += 1
                 processed_years.add(year)
 
-    # Process XLSX files (if year not already processed from CSV)
-    for file_path in xlsx_files:
-        df = extract_from_xlsx(file_path)
-
-        if df is not None and not df.empty:
-            year = df["year"].iloc[0]
-            if year not in processed_years:
-                output_file = PROCESSED_DIR / f"accounts_{year}.parquet"
-                df.to_parquet(output_file, compression="snappy")
-                logger.info(f"  Saved: {output_file.name}")
-                processed_count += 1
-                processed_years.add(year)
-
-    logger.info(f"\nProcessed {processed_count} account years successfully")
+    logger.info(f"\nProcessed {processed_count}/{len(csv_files)} account files successfully")
 
 
 if __name__ == "__main__":
