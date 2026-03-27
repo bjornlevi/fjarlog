@@ -57,23 +57,25 @@ async def extract_documents() -> List[Dict]:
             all_links = await page.locator("a").all()
             logger.info(f"Found {len(all_links)} total links on page")
 
-            # Build a list of (href, text) tuples
+            # Build a list of (href, text) tuples - log ALL links for debugging
             link_data = []
-            for link in all_links:
+            for idx, link in enumerate(all_links):
                 try:
                     href = await link.get_attribute("href")
                     text = await link.text_content()
-                    if href and text:
-                        text_clean = text.strip()
+                    text_clean = text.strip() if text else ""
+
+                    # Log all links with their content
+                    if text_clean:
+                        logger.info(f"  [{idx}] Text: '{text_clean}' | URL: {href}")
+
+                    if href and text_clean:
                         link_data.append((href.strip(), text_clean))
-                        # Debug: log links that might be data files
-                        if any(keyword in text_clean.lower() for keyword in ["csv", "xlsx", "xls", "sækja", "gögn"]):
-                            logger.debug(f"  Link: {text_clean} -> {href}")
                 except Exception as e:
-                    logger.debug(f"Error processing link: {e}")
+                    logger.debug(f"Error processing link {idx}: {e}")
                     continue
 
-            logger.info(f"Extracted {len(link_data)} links with URLs")
+            logger.info(f"Extracted {len(link_data)} links with both text and URLs")
 
             # Find links for "Sækja csv skrá" and "Sækja xlsx skrá"
             # Check both href and text for CSV/XLSX keywords
