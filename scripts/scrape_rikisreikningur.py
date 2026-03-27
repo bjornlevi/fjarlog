@@ -76,8 +76,9 @@ async def extract_documents() -> List[Dict]:
             logger.info(f"Extracted {len(link_data)} links with URLs")
 
             # Find links for "Sækja csv skrá" and "Sækja xlsx skrá"
-            csv_links = [href for href, text in link_data if "csv" in text.lower()]
-            xlsx_links = [href for href, text in link_data if "xlsx" in text.lower() or "xls" in text.lower()]
+            # Check both href and text for CSV/XLSX keywords
+            csv_links = [href for href, text in link_data if "csv" in href.lower() or "csv" in text.lower()]
+            xlsx_links = [href for href, text in link_data if ("xlsx" in href.lower() or "xls" in href.lower()) or ("xlsx" in text.lower() or "xls" in text.lower())]
 
             logger.info(f"Found {len(csv_links)} CSV links: {csv_links[:3]}")
             logger.info(f"Found {len(xlsx_links)} XLSX links: {xlsx_links[:3]}")
