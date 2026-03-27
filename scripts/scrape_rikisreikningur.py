@@ -59,6 +59,8 @@ async def extract_documents() -> List[Dict]:
 
             # Build a list of (href, text) tuples - log ALL links for debugging
             link_data = []
+            download_links = []
+
             for idx, link in enumerate(all_links):
                 try:
                     href = await link.get_attribute("href")
@@ -69,19 +71,44 @@ async def extract_documents() -> List[Dict]:
                     if text_clean:
                         logger.info(f"  [{idx}] Text: '{text_clean}' | URL: {href}")
 
+                    # For "Sækja" links without href, check for onclick or other attributes
+                    if not href and "sækja" in text_clean.lower():
+                        onclick = await link.get_attribute("onclick")
+                        data_url = await link.get_attribute("data-url")
+                        data_href = await link.get_attribute("data-href")
+
+                        # Try to find URL in onclick or data attributes
+                        if onclick:
+                            logger.info(f"    [{idx}] onclick: {onclick}")
+                            # Extract URL from onclick if it's a JavaScript call
+                            url_match = re.search(r"['\"]([^'\"]*(?:csv|xlsx)[^'\"]*)['\"]", onclick)
+                            if url_match:
+                                href = url_match.group(1)
+                                logger.info(f"    [{idx}] Extracted URL from onclick: {href}")
+
+                        if data_url:
+                            logger.info(f"    [{idx}] data-url: {data_url}")
+                            href = data_url
+
+                        if data_href:
+                            logger.info(f"    [{idx}] data-href: {data_href}")
+                            href = data_href
+
                     if href and text_clean:
                         link_data.append((href.strip(), text_clean))
+                        if "sækja" in text_clean.lower():
+                            download_links.append((href.strip(), text_clean))
                 except Exception as e:
                     logger.debug(f"Error processing link {idx}: {e}")
                     continue
 
             logger.info(f"Extracted {len(link_data)} links with both text and URLs")
 
-            # Find links for "Sækja csv skrá" and "Sækja xlsx skrá"
-            # Check both href and text for CSV/XLSX keywords
-            csv_links = [href for href, text in link_data if "csv" in href.lower() or "csv" in text.lower()]
-            xlsx_links = [href for href, text in link_data if ("xlsx" in href.lower() or "xls" in href.lower()) or ("xlsx" in text.lower() or "xls" in text.lower())]
+            # Separate download links by format
+            csv_links = [href for href, text in download_links if "csv" in href.lower()]
+            xlsx_links = [href for href, text in download_links if "xlsx" in href.lower() or "xls" in href.lower()]
 
+            logger.info(f"Found {len(download_links)} download links total")
             logger.info(f"Found {len(csv_links)} CSV links: {csv_links[:3]}")
             logger.info(f"Found {len(xlsx_links)} XLSX links: {xlsx_links[:3]}")
 
