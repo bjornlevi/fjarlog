@@ -67,14 +67,18 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
         xls = pd.ExcelFile(file_path, engine='openpyxl')
         logger.info(f"  Sheets: {xls.sheet_names}")
 
-        # Try to find the main data sheet
+        # Skip table of contents sheet and find the main data sheet
         data_sheet = None
         for sheet_name in xls.sheet_names:
-            if sheet_name.lower() in ["data", "budget", "gögn", "fjárlög", "fjarlög"]:
-                data_sheet = sheet_name
-                break
+            sheet_lower = sheet_name.lower()
+            if sheet_lower not in ["töfluyfirlit", "oversigt", "index"]:
+                if sheet_lower in ["data", "budget", "gögn", "fjárlög", "fjarlög"]:
+                    data_sheet = sheet_name
+                    break
+                elif data_sheet is None:
+                    data_sheet = sheet_name
 
-        if not data_sheet:
+        if not data_sheet and xls.sheet_names:
             data_sheet = xls.sheet_names[0]
 
         logger.info(f"  Using sheet: {data_sheet}")
@@ -101,12 +105,18 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
             for val in row:
                 if pd.notna(val):
                     try:
-                        amount = float(str(val).replace(",", "").replace(".", ""))
-                        break
+                        if isinstance(val, (int, float)):
+                            amount = float(val)
+                        else:
+                            amount_str = str(val).strip()
+                            amount_str = amount_str.replace(".", "").replace(",", ".")
+                            amount = float(amount_str)
+                        if amount != 0:
+                            break
                     except (ValueError, AttributeError):
                         continue
 
-            if amount is not None:
+            if amount is not None and amount != 0:
                 result_rows.append({
                     "year": year,
                     "source_type": "bill",
