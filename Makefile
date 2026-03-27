@@ -1,4 +1,4 @@
-.PHONY: help install setup scrape scrape-bills scrape-plans scrape-accounts download process process-plans process-bills process-accounts curate clean
+.PHONY: help install setup scrape scrape-bills scrape-plans scrape-accounts download process process-plans process-bills process-accounts curate clean all pipeline
 
 PYTHON := python3
 PIP := pip3
@@ -8,6 +8,10 @@ help:
 	@echo "Fjárlög - Budget Comparison Tool"
 	@echo ""
 	@echo "Available targets:"
+	@echo ""
+	@echo "Complete Pipeline:"
+	@echo "  make all            Full pipeline: scrape → download → process → curate"
+	@echo "  make pipeline       Same as 'make all'"
 	@echo ""
 	@echo "Setup & Installation:"
 	@echo "  make install        Install dependencies"
@@ -19,11 +23,16 @@ help:
 	@echo "  make scrape-plans   Scrape budget plans (Tillaga til fjármálaáætlunar)"
 	@echo "  make scrape-accounts Scrape budget accounts (Ríkisreikningur)"
 	@echo ""
-	@echo "Data Pipeline:"
+	@echo "Data Pipeline Steps:"
 	@echo "  make download       Download documents into landing zone"
+	@echo "  make process        Extract and process all data files"
+	@echo "  make process-plans     Process budget plans only"
+	@echo "  make process-bills     Process budget bills only"
+	@echo "  make process-accounts  Process budget accounts only"
+	@echo "  make curate         Build final comparison parquet"
 	@echo ""
 	@echo "Cleanup:"
-	@echo "  make clean          Remove downloaded data files"
+	@echo "  make clean          Remove all processed and downloaded data"
 	@echo ""
 
 install:
@@ -31,6 +40,14 @@ install:
 
 setup: install
 	$(PYTHON) -m playwright install
+
+all: scrape download process curate
+	@echo ""
+	@echo "✓ Pipeline complete!"
+	@echo "Comparison table saved to: data/curated/comparison.parquet"
+	@echo ""
+
+pipeline: all
 
 scrape:
 	@echo "Running all data source scrapers..."
