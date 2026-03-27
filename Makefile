@@ -1,4 +1,4 @@
-.PHONY: help install setup scrape scrape-bills scrape-plans scrape-accounts download clean
+.PHONY: help install setup scrape scrape-bills scrape-plans scrape-accounts download process process-plans process-bills process-accounts curate clean
 
 PYTHON := python3
 PIP := pip3
@@ -51,6 +51,26 @@ scrape-accounts:
 download:
 	@echo "Downloading documents to landing zone..."
 	$(PYTHON) $(SCRIPTS_DIR)/download_sources.py
+
+process:
+	@echo "Processing all data (plans, bills, accounts)..."
+	$(PYTHON) $(SCRIPTS_DIR)/process_all_data.py
+
+process-plans:
+	@echo "Processing budget plans..."
+	$(PYTHON) $(SCRIPTS_DIR)/process_plans.py
+
+process-bills:
+	@echo "Processing budget bills..."
+	$(PYTHON) $(SCRIPTS_DIR)/process_bills.py
+
+process-accounts:
+	@echo "Processing budget accounts..."
+	$(PYTHON) $(SCRIPTS_DIR)/process_accounts.py
+
+curate:
+	@echo "Building comparison parquet..."
+	$(PYTHON) $(SCRIPTS_DIR)/build_comparison.py
 
 clean:
 	@echo "Cleaning up downloaded data files..."
