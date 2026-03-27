@@ -22,9 +22,9 @@
       {
         "id": "bill_2024",
         "year": 2024,
-        "title": "Fjárlög 2024",
-        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/Fj%c3%a1rl%c3%b6g%202024.pdf",
-        "format": "pdf",
+        "title": "Fjárlög 2024 - Talnagögn",
+        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/Fj%c3%a1rl%c3%b6g%202024%20csv.csv",
+        "format": "csv",
         "status": "active"
       },
       {
