@@ -55,7 +55,7 @@ async def extract_documents() -> List[Dict]:
 
             # Get all links and their text
             all_links = await page.locator("a").all()
-            logger.info(f"Found {len(all_links)} links on page")
+            logger.info(f"Found {len(all_links)} total links on page")
 
             # Build a list of (href, text) tuples
             link_data = []
@@ -64,20 +64,27 @@ async def extract_documents() -> List[Dict]:
                     href = await link.get_attribute("href")
                     text = await link.text_content()
                     if href and text:
-                        link_data.append((href.strip(), text.strip().lower()))
-                except Exception:
+                        text_clean = text.strip()
+                        link_data.append((href.strip(), text_clean))
+                        # Debug: log links that might be data files
+                        if any(keyword in text_clean.lower() for keyword in ["csv", "xlsx", "xls", "sækja", "gögn"]):
+                            logger.debug(f"  Link: {text_clean} -> {href}")
+                except Exception as e:
+                    logger.debug(f"Error processing link: {e}")
                     continue
 
-            logger.info(f"Extracted {len(link_data)} links with URLs and text")
+            logger.info(f"Extracted {len(link_data)} links with URLs")
 
             # Find links for "Sækja csv skrá" and "Sækja xlsx skrá"
-            csv_links = [(href, text) for href, text in link_data if "csv" in text and "sækja" in text]
-            xlsx_links = [(href, text) for href, text in link_data if "xlsx" in text and "sækja" in text]
+            csv_links = [href for href, text in link_data if "csv" in text.lower()]
+            xlsx_links = [href for href, text in link_data if "xlsx" in text.lower() or "xls" in text.lower()]
 
-            logger.info(f"Found {len(csv_links)} CSV links and {len(xlsx_links)} XLSX links")
+            logger.info(f"Found {len(csv_links)} CSV links: {csv_links[:3]}")
+            logger.info(f"Found {len(xlsx_links)} XLSX links: {xlsx_links[:3]}")
 
-            # Find all year headers and their associated links
+            # Find all year headers
             year_matches = list(re.finditer(r"Ríkisreikningur\s+gögn\s+árið\s+(\d{4})", content, re.IGNORECASE))
+            logger.info(f"Found {len(year_matches)} year entries")
 
             for idx, year_match in enumerate(year_matches):
                 year = int(year_match.group(1))
@@ -86,14 +93,13 @@ async def extract_documents() -> List[Dict]:
                 if year < 2015 or year > 2025:
                     continue
 
-                logger.info(f"Processing year: {year}")
+                logger.info(f"Processing year: {year} (index {idx})")
 
-                # CSV and XLSX links should be near this year in the HTML
-                # Use index to find the corresponding links (they come after the year text)
-                # We'll add both CSV and XLSX if available
-                if len(csv_links) > idx:
-                    href, text = csv_links[idx]
-                    logger.info(f"Found: Ríkisreikningur {year} (CSV) -> {href}")
+                # Match CSV link (should be at index idx*2)
+                csv_idx = idx * 2
+                if csv_idx < len(csv_links):
+                    href = csv_links[csv_idx]
+                    logger.info(f"  CSV [{csv_idx}]: {href}")
                     documents.append(
                         {
                             "title": f"Ríkisreikningur gögn {year} (CSV)",
@@ -102,10 +108,14 @@ async def extract_documents() -> List[Dict]:
                             "format": "csv",
                         }
                     )
+                else:
+                    logger.warning(f"  No CSV link found for index {csv_idx}")
 
-                if len(xlsx_links) > idx:
-                    href, text = xlsx_links[idx]
-                    logger.info(f"Found: Ríkisreikningur {year} (XLSX) -> {href}")
+                # Match XLSX link (should be at index idx*2+1)
+                xlsx_idx = idx * 2 + 1
+                if xlsx_idx < len(xlsx_links):
+                    href = xlsx_links[xlsx_idx]
+                    logger.info(f"  XLSX [{xlsx_idx}]: {href}")
                     documents.append(
                         {
                             "title": f"Ríkisreikningur gögn {year} (XLSX)",
@@ -114,6 +124,8 @@ async def extract_documents() -> List[Dict]:
                             "format": "xlsx",
                         }
                     )
+                else:
+                    logger.warning(f"  No XLSX link found for index {xlsx_idx}")
 
         except Exception as e:
             logger.error(f"Error loading page: {e}")
