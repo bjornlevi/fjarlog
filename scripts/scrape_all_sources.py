@@ -22,7 +22,7 @@ SCRIPT_DIR = Path(__file__).parent
 SCRAPERS = [
     ("Budget Bills (Frumvarp til fjárlaga)", "scrape_fjarlog.py"),
     ("Budget Plans (Tillaga til fjármálaáætlunar)", "scrape_fjarmalaaaetlun.py"),
-    ("Budget Accounts (Ríkisreikningur)", "scrape_rikisreikningur.py"),
+    # ("Budget Accounts (Ríkisreikningur)", "scrape_rikisreikningur.py"),  # Skipped - URLs not available via automation
 ]
 
 
