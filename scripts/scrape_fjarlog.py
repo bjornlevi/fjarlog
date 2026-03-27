@@ -57,8 +57,7 @@ def extract_documents_from_page(year: int) -> List[Dict]:
 
         soup = BeautifulSoup(response.content, "html.parser")
 
-        # Look for download links (typically PDFs for budget bills)
-        # Try common patterns for document links
+        # Look for download links (PDFs and XLSX for budget bills)
         for link in soup.find_all("a"):
             href = link.get("href", "")
             text = link.get_text(strip=True)
@@ -66,43 +65,52 @@ def extract_documents_from_page(year: int) -> List[Dict]:
             if not href or not text:
                 continue
 
-            # Look for PDF links
+            # Determine format
+            fmt = None
             if href.lower().endswith(".pdf") or "pdf" in href.lower():
-                # Make absolute URL if relative
-                if href.startswith(("http://", "https://")):
-                    full_url = href
-                else:
-                    full_url = urljoin(BASE_URL, href)
+                fmt = "pdf"
+            elif href.lower().endswith((".xlsx", ".xls")) or "excel" in href.lower():
+                fmt = "xlsx"
 
-                # Check if it looks like a budget bill document
-                if any(
-                    keyword in text.lower()
-                    for keyword in ["frumvarp", "fjárlög", "fjarlög", "budget"]
-                ):
-                    logger.info(f"Found {year}: {text} -> {full_url}")
-                    documents.append(
-                        {
-                            "title": text,
-                            "year": year,
-                            "url": full_url,
-                            "format": "pdf",
-                        }
-                    )
+            if not fmt:
+                continue
 
-        # Also look for any PDF links in the page (fallback)
+            # Make absolute URL if relative
+            if href.startswith(("http://", "https://")):
+                full_url = href
+            else:
+                full_url = urljoin(BASE_URL, href)
+
+            # Check if it looks like a budget bill document
+            if any(
+                keyword in text.lower()
+                for keyword in ["frumvarp", "fjárlög", "fjarlög", "budget", "fylgirit"]
+            ):
+                logger.info(f"Found {year} ({fmt}): {text} -> {full_url}")
+                documents.append(
+                    {
+                        "title": text,
+                        "year": year,
+                        "url": full_url,
+                        "format": fmt,
+                    }
+                )
+
+        # Also look for any document links in the page (fallback)
         if not documents:
-            for link in soup.find_all("a", href=re.compile(r"\.pdf$", re.I)):
+            for link in soup.find_all("a", href=re.compile(r"\.(pdf|xlsx?)$", re.I)):
                 href = link.get("href", "")
                 if href:
+                    fmt = "xlsx" if "xlsx" in href.lower() else "pdf"
                     full_url = urljoin(BASE_URL, href)
                     text = link.get_text(strip=True) or f"Frumvarp til fjárlaga {year}"
-                    logger.info(f"Found {year} (fallback): {text} -> {full_url}")
+                    logger.info(f"Found {year} ({fmt}, fallback): {text} -> {full_url}")
                     documents.append(
                         {
                             "title": text,
                             "year": year,
                             "url": full_url,
-                            "format": "pdf",
+                            "format": fmt,
                         }
                     )
 
