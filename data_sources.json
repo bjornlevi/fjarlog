@@ -14,64 +14,64 @@
       {
         "id": "bill_2025",
         "year": 2025,
-        "title": "Frumvarp til fjárlaga 2025",
-        "url": "",
+        "title": "Fjárlög 2025",
+        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/FJR_Fjarlog_2025_sam%c3%beykkt.pdf",
         "format": "pdf",
         "status": "active"
       },
       {
         "id": "bill_2024",
         "year": 2024,
-        "title": "Frumvarp til fjárlaga 2024",
-        "url": "",
+        "title": "Fjárlög 2024",
+        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/Fj%c3%a1rl%c3%b6g%202024.pdf",
         "format": "pdf",
         "status": "active"
       },
       {
         "id": "bill_2023",
         "year": 2023,
-        "title": "Frumvarp til fjárlaga 2023",
-        "url": "",
+        "title": "Töflur úr fjárlagafrumvarpi 2023 - ítarefni",
+        "url": "https://www.stjornarradid.is/library/03-Verkefni/Efnahagsmal-og-opinber-fjarmal/Fjarlagafrumvarp-fyrir-2023/T%c3%b6flur%20%c3%bar%20fj%c3%a1rlagafrumvarpi%202023%20%c3%adtarefni%20%c3%a1%20vef.xlsx",
         "format": "pdf",
         "status": "active"
       },
       {
         "id": "bill_2022",
         "year": 2022,
-        "title": "Frumvarp til fjárlaga 2022",
-        "url": "",
+        "title": "Töflur úr fjárlagafrumvarpi 2022 - ítarefni",
+        "url": "https://www.stjornarradid.is/library/01--Frettatengt---myndir-og-skrar/FJR/T%c3%b6flur%20%c3%bar%20fj%c3%a1rlagafrumvarpi%202022%20%c3%adtarefni%20%c3%a1%20vef.xlsx",
         "format": "pdf",
         "status": "active"
       },
       {
         "id": "bill_2021",
         "year": 2021,
-        "title": "Frumvarp til fjárlaga 2021",
-        "url": "",
+        "title": "Fylgirit með fjárlagafrumvarpi",
+        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/FJR_Fylgirit_V6.pdf",
         "format": "pdf",
         "status": "active"
       },
       {
         "id": "bill_2020",
         "year": 2020,
-        "title": "Frumvarp til fjárlaga 2020",
-        "url": "",
+        "title": "Ítarefni með kynningu ráðherra á efni fjárlagafrumvarps fyrir árið 2020",
+        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/Kynning%20r%c3%a1%c3%b0herra%20-%20Fj%c3%a1rlagafrumvarp%20fyrir%20%c3%a1ri%c3%b0%202020%20-%20%c3%adtarefni%20%c3%a1%20vef.pdf",
         "format": "pdf",
         "status": "active"
       },
       {
         "id": "bill_2019",
         "year": 2019,
-        "title": "Frumvarp til fjárlaga 2019",
-        "url": "",
+        "title": "Frumvarp til fjárlaga fyrir árið 2019",
+        "url": "https://www.stjornarradid.is/library/03-Verkefni/Efnahagsmal-og-opinber-fjarmal/Fjarlagafrumvarp-2019/Frumvarp_til_fjarlaga_2019.pdf",
         "format": "pdf",
         "status": "active"
       },
       {
         "id": "bill_2018",
         "year": 2018,
-        "title": "Frumvarp til fjárlaga 2018",
-        "url": "",
+        "title": "Fylgirit með fjárlögum 2018",
+        "url": "https://www.stjornarradid.is/library/02-Rit--skyrslur-og-skrar/Fylgirit%20me%c3%b0%20fj%c3%a1rl%c3%b6gum%202018.pdf",
         "format": "pdf",
         "status": "active"
       }
@@ -84,111 +84,65 @@
       {
         "id": "plan_2027_2031",
         "year": 2027,
-        "title": "Tillaga til fjármálaáætlunar 2027-2031",
-        "url": "",
+        "title": "Forsíða fjármálaáætlunar",
+        "url": "https://www.stjornarradid.is/verkefni/opinber-fjarmal/fjarmalaaaetlun/fjarmalaaaetlun-2027-2031/",
         "format": "xlsx",
         "status": "active"
       },
       {
         "id": "plan_2026_2030",
         "year": 2026,
-        "title": "Tillaga til fjármálaáætlunar 2026-2030",
-        "url": "",
+        "title": "Forsíða fjármálaáætlunar",
+        "url": "https://www.stjornarradid.is/verkefni/opinber-fjarmal/fjarmalaaaetlun/fjarmalaaaetlun-2026-2030/",
         "format": "xlsx",
         "status": "active"
       },
       {
         "id": "plan_2025_2029",
         "year": 2025,
-        "title": "Tillaga til fjármálaáætlunar 2025-2029",
-        "url": "",
+        "title": "Forsíða fjármálaáætlunar",
+        "url": "https://www.stjornarradid.is/verkefni/opinber-fjarmal/fjarmalaaaetlun/fjarmalaaaetlun-2025-2029/",
         "format": "xlsx",
         "status": "active"
       },
       {
         "id": "plan_2024_2028",
         "year": 2024,
-        "title": "Tillaga til fjármálaáætlunar 2024-2028",
-        "url": "",
+        "title": "Fjármálaáætlun 2024-2028: Spornað gegn verðbólgu, lífskjör varin og byggt undir vöxt",
+        "url": "https://www.stjornarradid.is/efst-a-baugi/frettir/stok-frett/2023/03/29/Fjarmalaaaetlun-2024-2028-Spornad-gegn-verdbolgu-lifskjor-varin-og-byggt-undir-voxt/",
         "format": "xlsx",
         "status": "active"
       },
       {
         "id": "plan_2023_2027",
         "year": 2023,
-        "title": "Tillaga til fjármálaáætlunar 2023-2027",
-        "url": "",
+        "title": "Fjármálaáætlun 2018-2022",
+        "url": "https://www.stjornarradid.is/media/fjarmalaraduneyti-media/media/frettatengt2016/fjarmalaaaetlun-2018-22.pdf",
         "format": "xlsx",
         "status": "active"
       },
       {
         "id": "plan_2022_2026",
         "year": 2022,
-        "title": "Tillaga til fjármálaáætlunar 2022-2026",
-        "url": "",
+        "title": "Fjármálaáætlun 2018-2022",
+        "url": "https://www.stjornarradid.is/media/fjarmalaraduneyti-media/media/frettatengt2016/fjarmalaaaetlun-2018-22.pdf",
         "format": "xlsx",
         "status": "active"
       },
       {
         "id": "plan_2021_2025",
         "year": 2021,
-        "title": "Tillaga til fjármálaáætlunar 2021-2025",
-        "url": "",
+        "title": "Kaflar síðustu fjármálaáætlunar",
+        "url": "https://www.stjornarradid.is/gogn/stefnur-og-aaetlanir/opinber-fjarmal/",
         "format": "xlsx",
         "status": "active"
       },
       {
         "id": "plan_2020_2024",
         "year": 2020,
-        "title": "Tillaga til fjármálaáætlunar 2020-2024",
-        "url": "",
+        "title": "Kaflar síðustu fjármálaáætlunar",
+        "url": "https://www.stjornarradid.is/gogn/stefnur-og-aaetlanir/opinber-fjarmal/",
         "format": "xlsx",
-        "status": "active"
-      }
-    ]
-  },
-  "budget_accounts": {
-    "description": "Ríkisreikningur (Budget accounts/statements)",
-    "source": "http://arsreikningar.rikisreikningur.is/",
-    "documents": [
-      {
-        "id": "accounts_2023",
-        "year": 2023,
-        "title": "Ríkisreikningur 2023",
-        "url": "",
-        "format": "pdf",
-        "status": "active"
-      },
-      {
-        "id": "accounts_2022",
-        "year": 2022,
-        "title": "Ríkisreikningur 2022",
-        "url": "",
-        "format": "pdf",
-        "status": "active"
-      },
-      {
-        "id": "accounts_2021",
-        "year": 2021,
-        "title": "Ríkisreikningur 2021",
-        "url": "",
-        "format": "pdf",
-        "status": "active"
-      },
-      {
-        "id": "accounts_2020",
-        "year": 2020,
-        "title": "Ríkisreikningur 2020",
-        "url": "",
-        "format": "pdf",
-        "status": "active"
-      },
-      {
-        "id": "accounts_2019",
-        "year": 2019,
-        "title": "Ríkisreikningur 2019",
-        "url": "",
-        "format": "pdf",
         "status": "active"
       }
     ]
