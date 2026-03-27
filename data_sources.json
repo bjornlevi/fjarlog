@@ -1,7 +1,16 @@
 {
   "budget_bills": {
     "description": "Frumvarp til fjárlaga (Budget bills/proposals)",
+    "source": "https://www.stjornarradid.is/verkefni/opinber-fjarmal/fjarlog/",
     "documents": [
+      {
+        "id": "bill_2026",
+        "year": 2026,
+        "title": "Frumvarp til fjárlaga 2026",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
       {
         "id": "bill_2025",
         "year": 2025,
@@ -17,12 +26,77 @@
         "url": "",
         "format": "pdf",
         "status": "active"
+      },
+      {
+        "id": "bill_2023",
+        "year": 2023,
+        "title": "Frumvarp til fjárlaga 2023",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "bill_2022",
+        "year": 2022,
+        "title": "Frumvarp til fjárlaga 2022",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "bill_2021",
+        "year": 2021,
+        "title": "Frumvarp til fjárlaga 2021",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "bill_2020",
+        "year": 2020,
+        "title": "Frumvarp til fjárlaga 2020",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "bill_2019",
+        "year": 2019,
+        "title": "Frumvarp til fjárlaga 2019",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "bill_2018",
+        "year": 2018,
+        "title": "Frumvarp til fjárlaga 2018",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
       }
     ]
   },
   "budget_plans": {
     "description": "Tillaga til fjármálaáætlunar (Budget plans/estimates)",
+    "source": "https://www.stjornarradid.is/verkefni/opinber-fjarmal/fjarmalaaaetlun/",
     "documents": [
+      {
+        "id": "plan_2027_2031",
+        "year": 2027,
+        "title": "Tillaga til fjármálaáætlunar 2027-2031",
+        "url": "",
+        "format": "xlsx",
+        "status": "active"
+      },
+      {
+        "id": "plan_2026_2030",
+        "year": 2026,
+        "title": "Tillaga til fjármálaáætlunar 2026-2030",
+        "url": "",
+        "format": "xlsx",
+        "status": "active"
+      },
       {
         "id": "plan_2025_2029",
         "year": 2025,
@@ -38,11 +112,44 @@
         "url": "",
         "format": "xlsx",
         "status": "active"
+      },
+      {
+        "id": "plan_2023_2027",
+        "year": 2023,
+        "title": "Tillaga til fjármálaáætlunar 2023-2027",
+        "url": "",
+        "format": "xlsx",
+        "status": "active"
+      },
+      {
+        "id": "plan_2022_2026",
+        "year": 2022,
+        "title": "Tillaga til fjármálaáætlunar 2022-2026",
+        "url": "",
+        "format": "xlsx",
+        "status": "active"
+      },
+      {
+        "id": "plan_2021_2025",
+        "year": 2021,
+        "title": "Tillaga til fjármálaáætlunar 2021-2025",
+        "url": "",
+        "format": "xlsx",
+        "status": "active"
+      },
+      {
+        "id": "plan_2020_2024",
+        "year": 2020,
+        "title": "Tillaga til fjármálaáætlunar 2020-2024",
+        "url": "",
+        "format": "xlsx",
+        "status": "active"
       }
     ]
   },
   "budget_accounts": {
     "description": "Ríkisreikningur (Budget accounts/statements)",
+    "source": "http://arsreikningar.rikisreikningur.is/",
     "documents": [
       {
         "id": "accounts_2023",
@@ -56,6 +163,30 @@
         "id": "accounts_2022",
         "year": 2022,
         "title": "Ríkisreikningur 2022",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "accounts_2021",
+        "year": 2021,
+        "title": "Ríkisreikningur 2021",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "accounts_2020",
+        "year": 2020,
+        "title": "Ríkisreikningur 2020",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "accounts_2019",
+        "year": 2019,
+        "title": "Ríkisreikningur 2019",
         "url": "",
         "format": "pdf",
         "status": "active"
