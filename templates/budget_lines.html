@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Fjárlagasöfnun - Fjárlagaliðir{% endblock %}
+
+{% block content %}
+<h2>Fjárlagaliðir</h2>
+
+<p>Skoðaðu fjárlagaliði og upphæðir fyrir valið ár.</p>
+
+<div class="filter-section">
+    <div class="form-group">
+        <label for="year-select">Veldu ár:</label>
+        <select id="year-select" onchange="loadBudgetLines()">
+            <option value="">Veldu ár...</option>
+            {% for year in years %}
+            <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+{% if selected_year and budget_lines %}
+<div style="margin-bottom: 2rem;">
+    <h3>Fjárlagaliðir fyrir {{ selected_year }}</h3>
+    <p><strong>Samtals liðir:</strong> {{ budget_lines|length }}</p>
+
+    <div style="margin-top: 1rem;">
+        <input type="text" id="search-lines" placeholder="Leita eftir liðum..." onkeyup="filterLines()">
+    </div>
+
+    <table style="margin-top: 1rem;">
+        <thead>
+            <tr>
+                <th>Fjárlagaliður</th>
+                <th style="width: 30%;">Aðgerðir</th>
+            </tr>
+        </thead>
+        <tbody id="lines-table">
+            {% for line in budget_lines %}
+            <tr class="line-row">
+                <td class="line-name">{{ line }}</td>
+                <td>
+                    <a href="/comparison?budget_line={{ line|urlencode }}&year={{ selected_year }}" style="color: #2d5555; text-decoration: none;">
+                        Skoðaðu samanburð →
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% elif selected_year %}
+<div class="error">
+    <p>Engar fjárlagaliðir fundnir fyrir árið {{ selected_year }}.</p>
+</div>
+{% else %}
+<p style="color: #666;">Veldu ár til að sjá fjárlagaliði.</p>
+{% endif %}
+
+<script>
+    function loadBudgetLines() {
+        const year = document.getElementById('year-select').value;
+        if (year) {
+            window.location.href = `/budget-lines?year=${year}`;
+        }
+    }
+
+    function filterLines() {
+        const searchTerm = document.getElementById('search-lines').value.toLowerCase();
+        const rows = document.querySelectorAll('.line-row');
+
+        rows.forEach(row => {
+            const lineName = row.querySelector('.line-name').textContent.toLowerCase();
+            if (lineName.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+</script>
+
+{% endblock %}

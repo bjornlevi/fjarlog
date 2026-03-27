@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Fjárlagasöfnun - Um{% endblock %}
+
+{% block content %}
+<h2>Um Fjárlagasöfnun</h2>
+
+<h3>Verkefnið</h3>
+
+<p>Fjárlagasöfnun er verkefni sem sameinar og ber saman fjárlög og fjármálaáætlanir ríkisins. Markmiðið er að gera opinber fjárlög og birt reikninga aðgengilega og auðlesandi fyrir almenning.</p>
+
+<h3>Gögn</h3>
+
+<p>Öll gögn sem notuð eru í þessu verkefni eru fengin frá opinberum heimildum:</p>
+
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li><strong>Fjárlagafrumvarp (Frumvarp til fjárlaga)</strong> - Tillögur til fjárlaga fyrir ár, gefnar út af Stjórnarráði Íslands</li>
+    <li><strong>Fjármálaáætlanir (Tillaga til fjármálaáætlunar)</strong> - Fjórðungs framtíðarplön fyrir útgjöld og tekjur</li>
+    <li><strong>Ríkisreikningur</strong> - Opinbir reikningsskil ríkisins (fyrirhuguð fyrir framtíð)</li>
+</ul>
+
+<h3>Gagnavinnsla</h3>
+
+<p>Gögnin eru unnin í gegnum flýtilaga (medallion architecture) með þremur stigum:</p>
+
+<dl style="margin: 1rem 0;">
+    <dt><strong>Landing Zone</strong></dt>
+    <dd>Rá gögn frá opinberum heimildum (CSV, XLSX, PDF)</dd>
+
+    <dt><strong>Silver Layer (Processed)</strong></dt>
+    <dd>Gögn eru ös og staðlöð, með samrýmdri flokkunarskema (year, institution, budget_line, amount)</dd>
+
+    <dt><strong>Gold Layer (Curated)</strong></dt>
+    <dd>Samanburðartöflur sem tengja fjárlagafrumvarp, reikningsgjöld og raunverulega útgjöld</dd>
+</dl>
+
+<h3>Tæknin</h3>
+
+<p>Fjárlagasöfnun er byggð með:</p>
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li>Python (3.12) fyrir gagnavinnslu</li>
+    <li>Pandas fyrir gagnakeilingu</li>
+    <li>Flask fyrir vefkerfi</li>
+    <li>Parquet fyrir skilvirkni gagnageymslu</li>
+</ul>
+
+<h3>Aðskilnaður gagna</h3>
+
+<p>Nú er hægt að skoða gögn fyrir 2025 (bæði áætlun og gjaldreikning). Fleiri ár og heimildir verða bætt við með tímanum.</p>
+
+<h3>Framtíð</h3>
+
+<p>Fyrirhugaðar endurbætur:</p>
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li>Viðbót fleiri ára</li>
+    <li>Flóknari gagnakannun og greiningu</li>
+    <li>Gagnaflutning (data visualization) með gröfum</li>
+    <li>Innflutningur á stofnanagreiðslum frá rikid.is</li>
+</ul>
+
+<h3>Grein og endurnotkun</h3>
+
+<p>Þetta verkefni er opinn og opinberir gögn. Farðu á <a href="https://github.com">GitHub</a> fyrir frumkóða og frekari upplýsingar.</p>
+
+<h3>Tengiliðir</h3>
+
+<p>Spurningar eða endurgjöf? Sendu á ... (þ.e.a.s. engar tengiliðir skráðir)</p>
+
+{% endblock %}

@@ -1,4 +1,4 @@
-.PHONY: help install setup scrape scrape-bills scrape-plans scrape-accounts download process process-plans process-bills process-accounts curate clean all pipeline
+.PHONY: help install setup scrape scrape-bills scrape-plans scrape-accounts download process process-plans process-bills process-accounts curate clean all pipeline web
 
 PYTHON := python3
 PIP := pip3
@@ -30,6 +30,9 @@ help:
 	@echo "  make process-bills     Process budget bills only"
 	@echo "  make process-accounts  Process budget accounts only"
 	@echo "  make curate         Build final comparison parquet"
+	@echo ""
+	@echo "Web Application:"
+	@echo "  make web            Start Flask web server (localhost:5000)"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean          Remove all processed and downloaded data"
@@ -89,6 +92,11 @@ process-accounts:
 curate:
 	@echo "Building comparison parquet..."
 	$(PYTHON) $(SCRIPTS_DIR)/build_comparison.py
+
+web:
+	@echo "Starting Flask web server..."
+	@echo "Open http://localhost:5000 in your browser"
+	$(PYTHON) app.py
 
 clean:
 	@echo "Cleaning up downloaded data files..."

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Fjárlagasöfnun - Heim{% endblock %}
+
+{% block content %}
+<h2>Velkominn</h2>
+
+<p>Þetta kerfi sameinar og bera saman fjárlög og fjármálaáætlanir ríkisins. Gögn eru sótt beint frá Stjórnarráði Íslands og eru uppfærð reglulega.</p>
+
+<div class="stats">
+    <div class="stat-card">
+        <h3>Heildargögn</h3>
+        <div class="value">{{ stats.total_rows }}</div>
+        <p>Samanburðarfærslur</p>
+    </div>
+    <div class="stat-card">
+        <h3>Ár</h3>
+        <div class="value">{{ stats.years|length }}</div>
+        <p>Tímabil:</p>
+        <p><small>{{ stats.years|join(", ") }}</small></p>
+    </div>
+    <div class="stat-card">
+        <h3>Stofnanir</h3>
+        <div class="value">{{ stats.institutions }}</div>
+        <p>Opinberar stofnanir</p>
+    </div>
+    <div class="stat-card">
+        <h3>Fjárlagaliðir</h3>
+        <div class="value">{{ stats.budget_lines }}</div>
+        <p>Aðskilda atriði</p>
+    </div>
+</div>
+
+<h3>Aðgengileg gögn</h3>
+
+<table>
+    <tr>
+        <th>Tegundir</th>
+        <th>Lýsing</th>
+        <th>Tímabil</th>
+    </tr>
+    <tr>
+        <td>🗂️ Fjárlagafrumvarp</td>
+        <td>Tillög til fjárlaga fyrir ár</td>
+        <td>2025</td>
+    </tr>
+    <tr>
+        <td>📋 Fjármálaáætlun</td>
+        <td>Tillögur til fjármálaáætlana fyrir 4-5 ár</td>
+        <td>2025-2029</td>
+    </tr>
+    <tr>
+        <td>✓ Ríkisreikningur</td>
+        <td>Opinber reikningsskil ríkisins</td>
+        <td>Ekki aðgengileg ennþá</td>
+    </tr>
+</table>
+
+<h3>Flakka um gögn</h3>
+
+<p>Byrjaðu á einni af eftirfarandi síðum:</p>
+
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li><a href="/comparison">Skoðaðu samanburð fjárlagafrumvarps og gjalda</a></li>
+    <li><a href="/budget-lines">Flakkaðu um fjárlagaliði eftir ári</a></li>
+    <li><a href="/about">Fláðu um þetta verkefni og gögnin</a></li>
+</ul>
+
+<h3>Um gögnin</h3>
+
+<p>Öll gögn eru fengin frá opinberum heimildum:</p>
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li><a href="https://www.stjornarradid.is/verkefni/opinber-fjarmal/fjarlog/">Fjárlagafrumvarp - Stjórnarráð Íslands</a></li>
+    <li><a href="https://www.stjornarradid.is/verkefni/opinber-fjarmal/fjarmalaaaetlun/">Fjármálaáætlanir - Stjórnarráð Íslands</a></li>
+</ul>
+
+{% endblock %}

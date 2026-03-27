@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Fjárlagasöfnun - Samanburður{% endblock %}
+
+{% block extra_css %}
+<style>
+    .comparison-table {
+        font-size: 0.9rem;
+        overflow-x: auto;
+    }
+
+    .numeric {
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
+
+    .missing {
+        background: #ffe6e6;
+    }
+
+    .match {
+        background: #e6ffe6;
+    }
+
+    .mismatch {
+        background: #fff3cd;
+    }
+
+    .summary {
+        background: #f0f0f0;
+        padding: 0.5rem;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Samanburður Fjárlagagagna</h2>
+
+<p>Berðu saman fjárlagafrumvarp og gjaldareikninga fyrir valið ár.</p>
+
+<div class="filter-section">
+    <div class="filter-controls">
+        <div class="form-group">
+            <label for="year-select">Ár:</label>
+            <select id="year-select">
+                <option value="">Allt ár</option>
+                {% for year in years %}
+                <option value="{{ year }}">{{ year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="institution-search">Stofnun:</label>
+            <input type="text" id="institution-search" placeholder="Leita eftir stofnun...">
+        </div>
+        <div class="form-group">
+            <label for="line-search">Fjárlagaliður:</label>
+            <input type="text" id="line-search" placeholder="Leita eftir liðum...">
+        </div>
+        <div class="form-group">
+            <label>&nbsp;</label>
+            <button onclick="applyFilters()">Sía</button>
+        </div>
+    </div>
+
+    <div id="summary" style="display: none;">
+        <p><strong>Niðurstöður:</strong> <span id="result-count">0</span> línur</p>
+    </div>
+</div>
+
+<div class="loading" id="loading" style="display: none;">
+    <p>Hleð gögnum...</p>
+</div>
+
+<div class="comparison-table" id="table-container">
+    <table id="comparison-table">
+        <thead>
+            <tr>
+                <th>Ár</th>
+                <th>Stofnun</th>
+                <th>Fjárlagaliður</th>
+                <th class="numeric">Áætlað</th>
+                <th class="numeric">Gjaldreikning</th>
+                <th class="numeric">Raunverulegur</th>
+                <th>Heimildir</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 2rem;">
+                    Veldu síu og smelltu á "Sía" til að hlaða gögnum.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="error" class="error" style="display: none;"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function formatNumber(n) {
+        if (n === null || n === undefined || n === 'N/A') return 'N/A';
+        if (typeof n === 'string') return n;
+        return n.toLocaleString('is-IS', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+    }
+
+    function applyFilters() {
+        const year = document.getElementById('year-select').value;
+        const institution = document.getElementById('institution-search').value;
+        const line = document.getElementById('line-search').value;
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('table-body').innerHTML = '';
+
+        const params = new URLSearchParams();
+        if (year) params.append('year', year);
+        if (institution) params.append('institution', institution);
+        if (line) params.append('budget_line', line);
+
+        fetch(`/api/comparison?${params.toString()}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Network error');
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('summary').style.display = 'block';
+                document.getElementById('result-count').textContent = data.length;
+
+                const tbody = document.getElementById('table-body');
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Engar niðurstöður fundnar.</td></tr>';
+                    return;
+                }
+
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+
+                    const planned = row.amount_planned;
+                    const billed = row.amount_billed;
+
+                    let rowClass = '';
+                    if (planned !== null && billed !== null && planned !== 'N/A' && billed !== 'N/A') {
+                        rowClass = Math.abs(planned - billed) < 1 ? 'match' : 'mismatch';
+                    } else if (!planned || planned === 'N/A') {
+                        rowClass = 'missing';
+                    }
+
+                    tr.innerHTML = `
+                        <td>${row.year}</td>
+                        <td>${row.institution}</td>
+                        <td>${row.budget_line}</td>
+                        <td class="numeric ${rowClass}">${formatNumber(planned)}</td>
+                        <td class="numeric ${rowClass}">${formatNumber(billed)}</td>
+                        <td class="numeric">${formatNumber(row.amount_actual)}</td>
+                        <td style="font-size: 0.8rem;">
+                            ${row.plan_document ? '📋' : ''}
+                            ${row.bill_document ? '📊' : ''}
+                            ${row.account_document ? '✓' : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = `Villa: ${error.message}`;
+            });
+    }
+
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('year')) {
+            document.getElementById('year-select').value = urlParams.get('year');
+        }
+    });
+</script>
+{% endblock %}
