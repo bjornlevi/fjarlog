@@ -1,0 +1,65 @@
+{
+  "budget_bills": {
+    "description": "Frumvarp til fjárlaga (Budget bills/proposals)",
+    "documents": [
+      {
+        "id": "bill_2025",
+        "year": 2025,
+        "title": "Frumvarp til fjárlaga 2025",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "bill_2024",
+        "year": 2024,
+        "title": "Frumvarp til fjárlaga 2024",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      }
+    ]
+  },
+  "budget_plans": {
+    "description": "Tillaga til fjármálaáætlunar (Budget plans/estimates)",
+    "documents": [
+      {
+        "id": "plan_2025_2029",
+        "year": 2025,
+        "title": "Tillaga til fjármálaáætlunar 2025-2029",
+        "url": "",
+        "format": "xlsx",
+        "status": "active"
+      },
+      {
+        "id": "plan_2024_2028",
+        "year": 2024,
+        "title": "Tillaga til fjármálaáætlunar 2024-2028",
+        "url": "",
+        "format": "xlsx",
+        "status": "active"
+      }
+    ]
+  },
+  "budget_accounts": {
+    "description": "Ríkisreikningur (Budget accounts/statements)",
+    "documents": [
+      {
+        "id": "accounts_2023",
+        "year": 2023,
+        "title": "Ríkisreikningur 2023",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      },
+      {
+        "id": "accounts_2022",
+        "year": 2022,
+        "title": "Ríkisreikningur 2022",
+        "url": "",
+        "format": "pdf",
+        "status": "active"
+      }
+    ]
+  }
+}
