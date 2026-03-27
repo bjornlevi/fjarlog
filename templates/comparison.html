@@ -37,40 +37,40 @@
 {% block content %}
 <h2>Samanburður Fjárlagagagna</h2>
 
-<p>Berðu saman fjárlagafrumvarp og gjaldareikninga fyrir valið ár.</p>
+<p>Berðu saman áætluð gögn úr fjárlagafrumvarpi og raunverulegar tölur.</p>
 
 <div class="filter-section">
     <div class="filter-controls">
         <div class="form-group">
             <label for="year-select">Ár:</label>
             <select id="year-select">
-                <option value="">Allt ár</option>
+                <option value="">-- Allt ár --</option>
                 {% for year in years %}
                 <option value="{{ year }}">{{ year }}</option>
                 {% endfor %}
             </select>
         </div>
         <div class="form-group">
-            <label for="institution-search">Stofnun:</label>
-            <input type="text" id="institution-search" placeholder="Leita eftir stofnun...">
+            <label for="institution-search">Stofnun/Ráðuneyti:</label>
+            <input type="text" id="institution-search" placeholder="T.d. Forsæ, Menntamál...">
         </div>
         <div class="form-group">
             <label for="line-search">Fjárlagaliður:</label>
-            <input type="text" id="line-search" placeholder="Leita eftir liðum...">
+            <input type="text" id="line-search" placeholder="T.d. Heilsugæsla...">
         </div>
         <div class="form-group">
             <label>&nbsp;</label>
-            <button onclick="applyFilters()">Sía</button>
+            <button onclick="applyFilters()">Leita</button>
         </div>
     </div>
 
     <div id="summary" style="display: none;">
-        <p><strong>Niðurstöður:</strong> <span id="result-count">0</span> línur</p>
+        <p><strong>Niðurstöður:</strong> <span id="result-count">0</span> færslur fundnar</p>
     </div>
 </div>
 
 <div class="loading" id="loading" style="display: none;">
-    <p>Hleð gögnum...</p>
+    <p>⏳ Hleð gögnum...</p>
 </div>
 
 <div class="comparison-table" id="table-container">
@@ -78,18 +78,18 @@
         <thead>
             <tr>
                 <th>Ár</th>
-                <th>Stofnun</th>
+                <th>Stofnun/Ráðuneyti</th>
                 <th>Fjárlagaliður</th>
-                <th class="numeric">Áætlað</th>
-                <th class="numeric">Gjaldreikning</th>
-                <th class="numeric">Raunverulegur</th>
+                <th class="numeric">Áætlað (ma.kr.)</th>
+                <th class="numeric">Raunverulegt (ma.kr.)</th>
+                <th class="numeric">Frávik %</th>
                 <th>Heimildir</th>
             </tr>
         </thead>
         <tbody id="table-body">
             <tr>
                 <td colspan="7" style="text-align: center; padding: 2rem;">
-                    Veldu síu og smelltu á "Sía" til að hlaða gögnum.
+                    Veldu síu og smelltu á „Leita" til að hlaða gögnum.
                 </td>
             </tr>
         </tbody>
@@ -134,7 +134,7 @@
 
                 const tbody = document.getElementById('table-body');
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Engar niðurstöður fundnar.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Engar gögn fundust fyrir þessa leitarskilyrði.</td></tr>';
                     return;
                 }
 
@@ -145,8 +145,12 @@
                     const billed = row.amount_billed;
 
                     let rowClass = '';
+                    let variance = 'N/A';
+
                     if (planned !== null && billed !== null && planned !== 'N/A' && billed !== 'N/A') {
-                        rowClass = Math.abs(planned - billed) < 1 ? 'match' : 'mismatch';
+                        const diff = Math.abs((billed - planned) / planned * 100);
+                        variance = diff.toFixed(1) + '%';
+                        rowClass = diff < 5 ? 'match' : 'mismatch';
                     } else if (!planned || planned === 'N/A') {
                         rowClass = 'missing';
                     }
@@ -157,7 +161,7 @@
                         <td>${row.budget_line}</td>
                         <td class="numeric ${rowClass}">${formatNumber(planned)}</td>
                         <td class="numeric ${rowClass}">${formatNumber(billed)}</td>
-                        <td class="numeric">${formatNumber(row.amount_actual)}</td>
+                        <td class="numeric ${rowClass}">${variance}</td>
                         <td style="font-size: 0.8rem;">
                             ${row.plan_document ? '📋' : ''}
                             ${row.bill_document ? '📊' : ''}

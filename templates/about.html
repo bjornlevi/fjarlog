@@ -1,69 +1,76 @@
 {% extends "base.html" %}
 
-{% block title %}Fjárlagasöfnun - Um{% endblock %}
+{% block title %}Fjárlagasöfnun - Um verkefnið{% endblock %}
 
 {% block content %}
 <h2>Um Fjárlagasöfnun</h2>
 
 <h3>Verkefnið</h3>
 
-<p>Fjárlagasöfnun er verkefni sem sameinar og ber saman fjárlög og fjármálaáætlanir ríkisins. Markmiðið er að gera opinber fjárlög og birt reikninga aðgengilega og auðlesandi fyrir almenning.</p>
+<p>Fjárlagasöfnun er opið verkefni sem sameinar gögn úr ýmsum heimildum um fjárlög ríkisins. Markmiðið er að gera opinber fjárlög og reikninga aðgengilega og auðlesandi fyrir almenning.</p>
 
 <h3>Gögn</h3>
 
-<p>Öll gögn sem notuð eru í þessu verkefni eru fengin frá opinberum heimildum:</p>
+<p>Öll gögn sem notuð eru hér koma frá opinberum heimildum:</p>
 
 <ul style="margin: 1rem 0; padding-left: 2rem;">
-    <li><strong>Fjárlagafrumvarp (Frumvarp til fjárlaga)</strong> - Tillögur til fjárlaga fyrir ár, gefnar út af Stjórnarráði Íslands</li>
-    <li><strong>Fjármálaáætlanir (Tillaga til fjármálaáætlunar)</strong> - Fjórðungs framtíðarplön fyrir útgjöld og tekjur</li>
-    <li><strong>Ríkisreikningur</strong> - Opinbir reikningsskil ríkisins (fyrirhuguð fyrir framtíð)</li>
+    <li><strong>Fjárlagafrumvarp</strong> - Tillögur til árlegra fjárlaga, gefnar út af Stjórnarráði Íslands</li>
+    <li><strong>Fjármálaáætlun</strong> - Fjórar ára áætlanir fyrir tekjur og gjöld</li>
+    <li><strong>Ríkisreikningur</strong> - Opinbir reikningsskil og raunveruleg gjaldareikning (væntanlegur)</li>
 </ul>
 
 <h3>Gagnavinnsla</h3>
 
-<p>Gögnin eru unnin í gegnum flýtilaga (medallion architecture) með þremur stigum:</p>
+<p>Gögnin eru unnin í gegnum "medallion architecture" með þremur stigum:</p>
 
 <dl style="margin: 1rem 0;">
-    <dt><strong>Landing Zone</strong></dt>
+    <dt><strong>Landing Zone (Hrátt gögn)</strong></dt>
     <dd>Rá gögn frá opinberum heimildum (CSV, XLSX, PDF)</dd>
 
-    <dt><strong>Silver Layer (Processed)</strong></dt>
-    <dd>Gögn eru ös og staðlöð, með samrýmdri flokkunarskema (year, institution, budget_line, amount)</dd>
+    <dt><strong>Silver Layer (Úrvinnsla)</strong></dt>
+    <dd>Gögn eru óskoruð og staðlöð með sameiginlegu flokkunarkerfi</dd>
 
-    <dt><strong>Gold Layer (Curated)</strong></dt>
-    <dd>Samanburðartöflur sem tengja fjárlagafrumvarp, reikningsgjöld og raunverulega útgjöld</dd>
+    <dt><strong>Gold Layer (Úrtak)</strong></dt>
+    <dd>Samanburðartöflur sem tengja mismunandi heimildir</dd>
 </dl>
 
 <h3>Tæknin</h3>
 
-<p>Fjárlagasöfnun er byggð með:</p>
+<p>Fjárlagasöfnun er byggð á opnum verkfærum:</p>
 <ul style="margin: 1rem 0; padding-left: 2rem;">
-    <li>Python (3.12) fyrir gagnavinnslu</li>
-    <li>Pandas fyrir gagnakeilingu</li>
-    <li>Flask fyrir vefkerfi</li>
-    <li>Parquet fyrir skilvirkni gagnageymslu</li>
+    <li><strong>Python</strong> fyrir gagnavinnslu og sjálfvirkni</li>
+    <li><strong>Pandas</strong> fyrir gagnakeilingu</li>
+    <li><strong>Flask</strong> fyrir vefkerfi</li>
+    <li><strong>Parquet</strong> fyrir skilvirkri gagnageymslu</li>
 </ul>
 
-<h3>Aðskilnaður gagna</h3>
+<h3>Núverandi gögn</h3>
 
-<p>Nú er hægt að skoða gögn fyrir 2025 (bæði áætlun og gjaldreikning). Fleiri ár og heimildir verða bætt við með tímanum.</p>
+<p>Við höfum nú aðgang að:</p>
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li>✓ Fjárlagafrumvarp 2025 (4.000+ liðir)</li>
+    <li>✓ Fjármálaáætlun 2025-2029 (200+ liðir)</li>
+    <li>⏳ Ríkisreikningur (væntanlegur)</li>
+    <li>⏳ Söguleg gögn 2018-2024 (verið er að safna)</li>
+</ul>
 
 <h3>Framtíð</h3>
 
 <p>Fyrirhugaðar endurbætur:</p>
 <ul style="margin: 1rem 0; padding-left: 2rem;">
-    <li>Viðbót fleiri ára</li>
-    <li>Flóknari gagnakannun og greiningu</li>
-    <li>Gagnaflutning (data visualization) með gröfum</li>
-    <li>Innflutningur á stofnanagreiðslum frá rikid.is</li>
+    <li>Innflutningur sögulegs gagna (2018-2024)</li>
+    <li>Viðbót ríkisreiknings (raunverulegir kostnaðir)</li>
+    <li>Útfærsla gagnaflutnings (gröf og myndir)</li>
+    <li>Tengill við greiðslugögn frá rikid.is</li>
+    <li>Greining á þróun og mynstrum</li>
 </ul>
 
-<h3>Grein og endurnotkun</h3>
+<h3>Spurningar og endurgjöf</h3>
 
-<p>Þetta verkefni er opinn og opinberir gögn. Farðu á <a href="https://github.com">GitHub</a> fyrir frumkóða og frekari upplýsingar.</p>
+<p>Ertu með spurningar um gögnin eða tillögur til umbóta? Sendu á GitHub verkefni eða tengst beint.</p>
 
-<h3>Tengiliðir</h3>
+<h3>Leyfi</h3>
 
-<p>Spurningar eða endurgjöf? Sendu á ... (þ.e.a.s. engar tengiliðir skráðir)</p>
+<p>Þetta verkefni og öll gögn eru aðgengileg undir opnum skilmálum. Gögn frá stjórnarráðinu og opinum heimildum eru sérfræðilegir frekar en með útgáfu.</p>
 
 {% endblock %}

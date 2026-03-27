@@ -1,22 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Fjárlagasöfnun - Heim{% endblock %}
+{% block title %}Fjárlagasöfnun - Forsíða{% endblock %}
 
 {% block content %}
-<h2>Velkominn</h2>
+<h2>Velkominn á Fjárlagasöfnun</h2>
 
-<p>Þetta kerfi sameinar og bera saman fjárlög og fjármálaáætlanir ríkisins. Gögn eru sótt beint frá Stjórnarráði Íslands og eru uppfærð reglulega.</p>
+<p>Hér geturðu skoðað og borið saman fjárlög ríkisins frá mismunandi heimildum. Gögn eru sótt beint frá Stjórnarráði Íslands.</p>
 
 <div class="stats">
     <div class="stat-card">
-        <h3>Heildargögn</h3>
+        <h3>Samanburðarfærslur</h3>
         <div class="value">{{ stats.total_rows }}</div>
-        <p>Samanburðarfærslur</p>
+        <p>Heildarfjöldi gagna</p>
     </div>
     <div class="stat-card">
-        <h3>Ár</h3>
+        <h3>Ár með gögnum</h3>
         <div class="value">{{ stats.years|length }}</div>
-        <p>Tímabil:</p>
         <p><small>{{ stats.years|join(", ") }}</small></p>
     </div>
     <div class="stat-card">
@@ -27,7 +26,7 @@
     <div class="stat-card">
         <h3>Fjárlagaliðir</h3>
         <div class="value">{{ stats.budget_lines }}</div>
-        <p>Aðskilda atriði</p>
+        <p>Flokkaðir liðir</p>
     </div>
 </div>
 
@@ -35,35 +34,39 @@
 
 <table>
     <tr>
-        <th>Tegundir</th>
+        <th>Gagnategund</th>
         <th>Lýsing</th>
         <th>Tímabil</th>
+        <th>Staða</th>
     </tr>
     <tr>
-        <td>🗂️ Fjárlagafrumvarp</td>
-        <td>Tillög til fjárlaga fyrir ár</td>
+        <td>📊 Fjárlagafrumvarp</td>
+        <td>Tillög til árlegra fjárlaga</td>
         <td>2025</td>
+        <td>✓ Tiltæk</td>
     </tr>
     <tr>
-        <td>📋 Fjármálaáætlun</td>
-        <td>Tillögur til fjármálaáætlana fyrir 4-5 ár</td>
+        <td>📈 Fjármálaáætlun</td>
+        <td>Fjórar ára fjarmálaáætlanir</td>
         <td>2025-2029</td>
+        <td>✓ Tiltæk</td>
     </tr>
     <tr>
-        <td>✓ Ríkisreikningur</td>
-        <td>Opinber reikningsskil ríkisins</td>
-        <td>Ekki aðgengileg ennþá</td>
+        <td>📋 Ríkisreikningur</td>
+        <td>Opinbir reikningsskil ríkisins</td>
+        <td>-</td>
+        <td>⏳ Væntanleg</td>
     </tr>
 </table>
 
-<h3>Flakka um gögn</h3>
+<h3>Kannaðu gögnin</h3>
 
 <p>Byrjaðu á einni af eftirfarandi síðum:</p>
 
 <ul style="margin: 1rem 0; padding-left: 2rem;">
-    <li><a href="/comparison">Skoðaðu samanburð fjárlagafrumvarps og gjalda</a></li>
-    <li><a href="/budget-lines">Flakkaðu um fjárlagaliði eftir ári</a></li>
-    <li><a href="/about">Fláðu um þetta verkefni og gögnin</a></li>
+    <li><a href="/comparison">Samanburður</a> - Berðu saman áætlanir og raunverulegar tölur</li>
+    <li><a href="/budget-lines">Fjárlagaliðir</a> - Kannaðu liði eftir ári og stofnun</a></li>
+    <li><a href="/about">Um verkefnið</a> - Nánar um gagnasöfnun og tæknina</a></li>
 </ul>
 
 <h3>Um gögnin</h3>

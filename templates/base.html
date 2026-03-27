@@ -236,13 +236,13 @@
     <header>
         <div class="container">
             <h1>📊 Fjárlagasöfnun</h1>
-            <p>Icelandic Government Budget Comparison Platform</p>
+            <p>Samanburðarkerfi fyrir fjárlög og fjármálaáætlanir ríkisins</p>
             <nav>
                 <ul>
-                    <li><a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}">Heim</a></li>
+                    <li><a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}">Forsíða</a></li>
                     <li><a href="/comparison" class="{% if request.endpoint == 'comparison' %}active{% endif %}">Samanburður</a></li>
-                    <li><a href="/budget-lines" class="{% if request.endpoint == 'budget_lines' %}active{% endif %}">Liðir</a></li>
-                    <li><a href="/about" class="{% if request.endpoint == 'about' %}active{% endif %}">Um</a></li>
+                    <li><a href="/budget-lines" class="{% if request.endpoint == 'budget_lines' %}active{% endif %}">Fjárlagaliðir</a></li>
+                    <li><a href="/about" class="{% if request.endpoint == 'about' %}active{% endif %}">Um verkefnið</a></li>
                 </ul>
             </nav>
         </div>
@@ -256,7 +256,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 Fjárlagasöfnun. Gögn frá <a href="https://www.stjornarradid.is" style="color: inherit;">Stjórnarráði Íslands</a></p>
+            <p>&copy; 2026 Fjárlagasöfnun. Gögn frá <a href="https://www.stjornarradid.is" style="color: inherit;">Stjórnarráði Íslands</a> | <a href="https://github.com" style="color: inherit;">Frumkóði</a></p>
         </div>
     </footer>
 

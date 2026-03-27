@@ -5,13 +5,13 @@
 {% block content %}
 <h2>Fjárlagaliðir</h2>
 
-<p>Skoðaðu fjárlagaliði og upphæðir fyrir valið ár.</p>
+<p>Kannaðu fjárlagaliði og upphæðir fyrir valið ár.</p>
 
 <div class="filter-section">
     <div class="form-group">
-        <label for="year-select">Veldu ár:</label>
+        <label for="year-select">Veldu árið:</label>
         <select id="year-select" onchange="loadBudgetLines()">
-            <option value="">Veldu ár...</option>
+            <option value="">-- Veldu ár --</option>
             {% for year in years %}
             <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
             {% endfor %}
@@ -21,17 +21,17 @@
 
 {% if selected_year and budget_lines %}
 <div style="margin-bottom: 2rem;">
-    <h3>Fjárlagaliðir fyrir {{ selected_year }}</h3>
-    <p><strong>Samtals liðir:</strong> {{ budget_lines|length }}</p>
+    <h3>Fjárlagaliðir fyrir árið {{ selected_year }}</h3>
+    <p><strong>Fjöldi liða:</strong> {{ budget_lines|length }}</p>
 
     <div style="margin-top: 1rem;">
-        <input type="text" id="search-lines" placeholder="Leita eftir liðum..." onkeyup="filterLines()">
+        <input type="text" id="search-lines" placeholder="Leita eftir nöfnum..." onkeyup="filterLines()">
     </div>
 
     <table style="margin-top: 1rem;">
         <thead>
             <tr>
-                <th>Fjárlagaliður</th>
+                <th>Liðurheiti</th>
                 <th style="width: 30%;">Aðgerðir</th>
             </tr>
         </thead>
@@ -41,7 +41,7 @@
                 <td class="line-name">{{ line }}</td>
                 <td>
                     <a href="/comparison?budget_line={{ line|urlencode }}&year={{ selected_year }}" style="color: #2d5555; text-decoration: none;">
-                        Skoðaðu samanburð →
+                        Samanburður →
                     </a>
                 </td>
             </tr>
@@ -51,10 +51,10 @@
 </div>
 {% elif selected_year %}
 <div class="error">
-    <p>Engar fjárlagaliðir fundnir fyrir árið {{ selected_year }}.</p>
+    <p>⚠ Engar fjárlagaliðir fundnir fyrir árið {{ selected_year }}.</p>
 </div>
 {% else %}
-<p style="color: #666;">Veldu ár til að sjá fjárlagaliði.</p>
+<p style="color: #666;">Veldu ár til að sjá listann yfir fjárlagaliði.</p>
 {% endif %}
 
 <script>
