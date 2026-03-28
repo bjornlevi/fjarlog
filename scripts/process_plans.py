@@ -170,6 +170,120 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
         return None
 
 
+def extract_malefnasvid_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
+    """
+    Extract 35 málefnasvið (policy areas) from Tafla 5 / Table 5 in XLSX budget plan files.
+
+    Args:
+        file_path: Path to the XLSX file
+
+    Returns:
+        DataFrame with columns: year, malefnasvid_nr, malefnasvid, source_type, document_id, amount
+        Or None if extraction fails
+    """
+    try:
+        logger.info(f"  Extracting málefnasvið from: {file_path.name}")
+
+        # Read Excel file
+        xls = pd.ExcelFile(file_path, engine='openpyxl')
+
+        # Find Tafla 5 or Table 5 sheet (with or without space)
+        tafla5_sheet = None
+        for sheet_name in xls.sheet_names:
+            sheet_lower = sheet_name.lower()
+            if sheet_lower in ["tafla 5", "tafla5", "table 5"]:
+                tafla5_sheet = sheet_name
+                break
+
+        if not tafla5_sheet:
+            logger.debug(f"    Tafla 5 / Table 5 not found in sheets: {xls.sheet_names}")
+            return None
+
+        logger.debug(f"    Found sheet: {tafla5_sheet}")
+
+        # Read the sheet with header at row index 2 (0-based)
+        df = pd.read_excel(file_path, sheet_name=tafla5_sheet, engine='openpyxl', header=2)
+
+        # Extract year/period from filename
+        match = re.search(r"plan_(\d{4})_(\d{4})", file_path.name)
+        if match:
+            start_year, end_year = int(match.group(1)), int(match.group(2))
+            doc_id = f"plan_{start_year}_{end_year}"
+        else:
+            logger.debug(f"    Could not parse year from filename: {file_path.name}")
+            return None
+
+        result_rows = []
+
+        # Data rows are 1-35 (35 policy areas), first column has policy area name
+        # The dataframe starts at index 1 (after header and empty row at index 0)
+        for idx in range(1, 36):
+            if idx >= len(df):
+                break
+
+            row = df.iloc[idx]
+            policy_area_str = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else None
+
+            if not policy_area_str:
+                continue
+
+            # Extract numeric code from "01 Alþingi og eftirlitsstofnanir þess" → "01"
+            # or from "01 01 Alþingi og eftirlitsstofnanir þess" (duplicate code in some files)
+            code_match = re.match(r"^(\d+)\s+(?:\d+\s+)?(.+)$", policy_area_str)
+            if not code_match:
+                continue
+
+            malefnasvid_nr = code_match.group(1)
+            malefnasvid = policy_area_str
+
+            # Extract amounts for each year column (columns with year numbers)
+            for col_idx, col_name in enumerate(df.columns[1:], start=1):
+                col_str = str(col_name).strip()
+                col_str = col_str.replace('\n', ' ').replace('  ', ' ')
+
+                # Look for year patterns
+                year_match = re.search(r'(\d{4})', col_str)
+                if year_match:
+                    year = int(year_match.group(1))
+                    # Only include years in the plan period
+                    if start_year <= year <= end_year:
+                        val = row.iloc[col_idx]
+
+                        if pd.notna(val):
+                            try:
+                                # Parse amount
+                                if isinstance(val, (int, float)):
+                                    amount = float(val)
+                                else:
+                                    amount_str = str(val).strip()
+                                    amount_str = amount_str.replace(".", "").replace(",", ".")
+                                    amount = float(amount_str)
+
+                                # Only include non-zero amounts
+                                if amount != 0:
+                                    result_rows.append({
+                                        "year": year,
+                                        "malefnasvid_nr": malefnasvid_nr,
+                                        "malefnasvid": malefnasvid,
+                                        "source_type": "plan",
+                                        "document_id": doc_id,
+                                        "amount": amount,
+                                    })
+                            except (ValueError, AttributeError):
+                                continue
+
+        if result_rows:
+            logger.info(f"    Extracted {len(result_rows)} málefnasvið records")
+            return pd.DataFrame(result_rows)
+        else:
+            logger.debug(f"    No málefnasvið records extracted from {tafla5_sheet}")
+            return None
+
+    except Exception as e:
+        logger.debug(f"  Error extracting málefnasvið from {file_path.name}: {e}")
+        return None
+
+
 def process_all_plans() -> None:
     """Process all XLSX budget plan files."""
     xlsx_files = find_xlsx_files()
@@ -181,7 +295,10 @@ def process_all_plans() -> None:
     logger.info(f"Found {len(xlsx_files)} plan files to process")
 
     processed_count = 0
+    malefnasvid_processed = 0
+
     for file_path in xlsx_files:
+        # Extract original data from Tafla 1
         df = extract_from_xlsx(file_path)
 
         if df is not None and not df.empty:
@@ -196,7 +313,23 @@ def process_all_plans() -> None:
                 logger.info(f"  Saved: {output_file.name}")
                 processed_count += 1
 
-    logger.info(f"\nProcessed {processed_count}/{len(xlsx_files)} plan files successfully")
+        # Extract málefnasvið data from Tafla 5
+        df_malefnasvid = extract_malefnasvid_from_xlsx(file_path)
+
+        if df_malefnasvid is not None and not df_malefnasvid.empty:
+            # Determine output filename for málefnasvið
+            match = re.search(r"plan_(\d{4})_(\d{4})", file_path.name)
+            if match:
+                start_year, end_year = match.group(1), match.group(2)
+                output_file = PROCESSED_DIR / f"plan_{start_year}_{end_year}_malefnasvid.parquet"
+
+                # Write to parquet
+                df_malefnasvid.to_parquet(output_file, compression="snappy")
+                logger.info(f"  Saved: {output_file.name}")
+                malefnasvid_processed += 1
+
+    logger.info(f"\nProcessed {processed_count}/{len(xlsx_files)} plan files")
+    logger.info(f"Processed {malefnasvid_processed}/{len(xlsx_files)} plan files for málefnasvið")
 
 
 if __name__ == "__main__":

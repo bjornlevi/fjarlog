@@ -46,7 +46,9 @@ setup: install
 all: scrape download process curate
 	@echo ""
 	@echo "✓ Pipeline complete!"
-	@echo "Comparison table saved to: data/curated/comparison.parquet"
+	@echo "Comparison tables saved to:"
+	@echo "  - data/curated/comparison.parquet"
+	@echo "  - data/curated/malefnasvid_comparison.parquet"
 	@echo ""
 
 pipeline: all
@@ -89,8 +91,9 @@ process-accounts:
 	$(PYTHON) $(SCRIPTS_DIR)/process_accounts.py
 
 curate:
-	@echo "Building comparison parquet..."
+	@echo "Building comparison parquets..."
 	$(PYTHON) $(SCRIPTS_DIR)/build_comparison.py
+	$(PYTHON) $(SCRIPTS_DIR)/build_malefnasvid_comparison.py
 
 web:
 	@echo "Starting Flask web server..."

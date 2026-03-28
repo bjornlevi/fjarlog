@@ -4,32 +4,208 @@
 
 {% block extra_css %}
 <style>
+    .mode-toggle {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        flex-wrap: wrap;
+    }
+
+    .mode-btn {
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #ccc;
+        background: white;
+        color: #333;
+        cursor: pointer;
+        font-size: 1rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .mode-btn.active {
+        background: #0066cc;
+        color: white;
+        border-color: #0066cc;
+    }
+
+    .mode-btn:hover {
+        border-color: #0066cc;
+    }
+
+    .filter-section {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: #f9f9f9;
+        border-radius: 4px;
+    }
+
+    .filter-controls {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+    }
+
+    .form-group select,
+    .form-group input {
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    button {
+        padding: 0.5rem 1.5rem;
+        background: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    button:hover {
+        background: #0052a3;
+    }
+
+    .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 800px;
+        margin: 2rem 0;
+        height: 400px;
+    }
+
     .comparison-table {
         font-size: 0.9rem;
         overflow-x: auto;
+        margin-top: 2rem;
+    }
+
+    .comparison-table table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+
+    .comparison-table thead {
+        background: #f5f5f5;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+
+    .comparison-table th {
+        font-weight: bold;
+        border-bottom: 2px solid #999;
+    }
+
+    .comparison-table tbody tr:nth-child(even) {
+        background: #f9f9f9;
+    }
+
+    .comparison-table tbody tr:hover {
+        background: #eef6ff;
     }
 
     .numeric {
         text-align: right;
         font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
     }
 
-    .missing {
-        background: #ffe6e6;
+    .malefnasvid-nr {
+        font-weight: bold;
+        width: 4%;
+        text-align: center;
     }
 
-    .match {
-        background: #e6ffe6;
+    .malefnasvid-name {
+        width: 45%;
     }
 
-    .mismatch {
-        background: #fff3cd;
+    .missing-value {
+        color: #999;
     }
 
     .summary {
         background: #f0f0f0;
-        padding: 0.5rem;
-        font-weight: bold;
+        padding: 1rem;
+        margin-top: 2rem;
+        border-radius: 4px;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        font-size: 1.2rem;
+    }
+
+    .error {
+        background: #ffe6e6;
+        border: 1px solid #ff6666;
+        color: #cc0000;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+    }
+
+    .year-selector-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .year-selector-group label {
+        display: block;
+        margin-bottom: 0.75rem;
+    }
+
+    .year-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .year-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid #ccc;
+        background: white;
+        color: #333;
+        cursor: pointer;
+        font-size: 0.95rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .year-btn:hover {
+        border-color: #0066cc;
+        background: #f0f6ff;
+    }
+
+    .year-btn.active {
+        background: #0066cc;
+        color: white;
+        border-color: #0066cc;
+    }
+
+    .hidden {
+        display: none;
     }
 </style>
 {% endblock %}
@@ -37,152 +213,365 @@
 {% block content %}
 <h2>Samanburður Fjárlagagagna</h2>
 
-<p>Berðu saman áætluð gögn úr fjárlagafrumvarpi og raunverulegar tölur.</p>
+<p>Berðu saman fjárlagagögn frá mismunandi heimildum eftir málefnasvið (35 stefnusviðum).</p>
 
+<!-- Mode toggle -->
+<div class="mode-toggle">
+    <button class="mode-btn active" onclick="setMode('comparison')">Samanburður</button>
+    <button class="mode-btn" onclick="setMode('plan')">Fjármálaáætlun</button>
+    <button class="mode-btn" onclick="setMode('bill')">Fjárlög</button>
+    <button class="mode-btn" onclick="setMode('accounts')">Ríkisreikningur</button>
+</div>
+
+<!-- Filters -->
 <div class="filter-section">
-    <div class="filter-controls">
-        <div class="form-group">
-            <label for="year-select">Ár:</label>
-            <select id="year-select">
-                <option value="">-- Allt ár --</option>
-                {% for year in years %}
-                <option value="{{ year }}">{{ year }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="institution-search">Stofnun/Ráðuneyti:</label>
-            <input type="text" id="institution-search" placeholder="T.d. Forsæ, Menntamál...">
-        </div>
-        <div class="form-group">
-            <label for="line-search">Fjárlagaliður:</label>
-            <input type="text" id="line-search" placeholder="T.d. Heilsugæsla...">
-        </div>
-        <div class="form-group">
-            <label>&nbsp;</label>
-            <button onclick="applyFilters()">Leita</button>
+    <div class="year-selector-group" id="year-selector-group">
+        <label>Veldu ár:</label>
+        <div class="year-buttons">
+            {% for year in years %}
+            <button class="year-btn" onclick="selectYear({{ year }})">{{ year }}</button>
+            {% endfor %}
         </div>
     </div>
-
-    <div id="summary" style="display: none;">
-        <p><strong>Niðurstöður:</strong> <span id="result-count">0</span> færslur fundnar</p>
+    <div id="source-info" class="year-selector-group hidden">
+        <p id="source-info-text"></p>
     </div>
 </div>
 
-<div class="loading" id="loading" style="display: none;">
+<!-- Chart -->
+<div class="chart-container hidden" id="chart-container">
+    <canvas id="comparison-chart"></canvas>
+</div>
+
+<!-- Loading indicator -->
+<div class="loading hidden" id="loading">
     <p>⏳ Hleð gögnum...</p>
 </div>
 
+<!-- Error message -->
+<div id="error" class="error hidden"></div>
+
+<!-- Data table -->
 <div class="comparison-table" id="table-container">
     <table id="comparison-table">
         <thead>
-            <tr>
-                <th>Ár</th>
-                <th>Stofnun/Ráðuneyti</th>
-                <th>Fjárlagaliður</th>
-                <th class="numeric">Áætlað (ma.kr.)</th>
-                <th class="numeric">Raunverulegt (ma.kr.)</th>
-                <th class="numeric">Frávik %</th>
-                <th>Heimildir</th>
-            </tr>
+            <tr id="table-header"></tr>
         </thead>
         <tbody id="table-body">
             <tr>
-                <td colspan="7" style="text-align: center; padding: 2rem;">
-                    Veldu síu og smelltu á „Leita" til að hlaða gögnum.
+                <td colspan="6" style="text-align: center; padding: 2rem;">
+                    Veldu ár til að hlaða gögnum.
                 </td>
             </tr>
         </tbody>
     </table>
 </div>
 
-<div id="error" class="error" style="display: none;"></div>
+<!-- Summary -->
+<div id="summary" class="summary hidden">
+    <p>Sýnandi <strong id="result-count">0</strong> málefnasvið</p>
+</div>
 
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
 <script>
-    function formatNumber(n) {
-        if (n === null || n === undefined || n === 'N/A') return 'N/A';
-        if (typeof n === 'string') return n;
-        return n.toLocaleString('is-IS', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+    let currentMode = 'comparison';
+    let selectedYear = null;
+    let chartInstance = null;
+
+    // Format number in Icelandic format with . as thousands separator
+    function formatNumberIS(n) {
+        if (n === null || n === undefined) return '—';
+        if (typeof n === 'number') {
+            return n.toLocaleString('is-IS', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+        }
+        return String(n);
     }
 
-    function applyFilters() {
-        const year = document.getElementById('year-select').value;
-        const institution = document.getElementById('institution-search').value;
-        const line = document.getElementById('line-search').value;
+    function selectYear(year) {
+        selectedYear = year;
 
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('error').style.display = 'none';
+        // Update button states
+        document.querySelectorAll('.year-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        loadData();
+    }
+
+    function setMode(mode) {
+        currentMode = mode;
+
+        // Update buttons
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Update UI based on mode
+        const yearGroup = document.getElementById('year-selector-group');
+        const sourceInfo = document.getElementById('source-info');
+        const chartContainer = document.getElementById('chart-container');
+
+        if (mode === 'comparison') {
+            yearGroup.classList.remove('hidden');
+            sourceInfo.classList.add('hidden');
+            chartContainer.classList.add('hidden');
+        } else {
+            yearGroup.classList.add('hidden');
+            sourceInfo.classList.remove('hidden');
+            chartContainer.classList.remove('hidden');
+            updateSourceInfo(mode);
+        }
+
+        loadData();
+    }
+
+    function updateSourceInfo(source) {
+        const sourceNames = {
+            'plan': 'Fjármálaáætlun',
+            'bill': 'Fjárlög',
+            'accounts': 'Ríkisreikningur'
+        };
+
+        const yearLists = {
+            'plan': {{ years_with_plans | tojson }},
+            'bill': {{ years_with_bills | tojson }},
+            'accounts': {{ years_with_accounts | tojson }}
+        };
+
+        const sourceText = document.getElementById('source-info-text');
+        const years = yearLists[source] || [];
+        sourceText.innerHTML = `<strong>${sourceNames[source]}:</strong> Ár með gögnum: ${years.join(', ')}`;
+    }
+
+    function loadData() {
+        if (currentMode === 'comparison') {
+            if (!selectedYear) {
+                document.getElementById('table-body').innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">Veldu ár til að hlaða gögnum.</td></tr>';
+                return;
+            }
+            loadComparisonData(selectedYear);
+        } else {
+            loadSourceData(currentMode);
+        }
+    }
+
+    function loadComparisonData(year) {
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('error').classList.add('hidden');
         document.getElementById('table-body').innerHTML = '';
 
-        const params = new URLSearchParams();
-        if (year) params.append('year', year);
-        if (institution) params.append('institution', institution);
-        if (line) params.append('budget_line', line);
-
-        fetch(`/api/comparison?${params.toString()}`)
+        fetch(`/api/malefnasvid?year=${year}`)
             .then(response => {
                 if (!response.ok) throw new Error('Network error');
                 return response.json();
             })
             .then(data => {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('summary').style.display = 'block';
-                document.getElementById('result-count').textContent = data.length;
+                document.getElementById('loading').classList.add('hidden');
 
+                // Build table header
+                const headers = [
+                    { text: '#', class: 'malefnasvid-nr' },
+                    { text: 'Málefnasvið', class: 'malefnasvid-name' },
+                    { text: 'Fjármálaáætlun (ma.kr.)', class: 'numeric' },
+                    { text: 'Fjárlög (ma.kr.)', class: 'numeric' },
+                    { text: 'Ríkisreikningur (ma.kr.)', class: 'numeric' }
+                ];
+
+                const headerRow = document.getElementById('table-header');
+                headerRow.innerHTML = headers.map(h => `<th class="${h.class}">${h.text}</th>`).join('');
+
+                // Build table body
                 const tbody = document.getElementById('table-body');
+                tbody.innerHTML = '';
+
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Engar gögn fundust fyrir þessa leitarskilyrði.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">Engin gögn fundust fyrir þetta ár.</td></tr>';
                     return;
                 }
 
                 data.forEach(row => {
                     const tr = document.createElement('tr');
 
-                    const planned = row.amount_planned;
-                    const billed = row.amount_billed;
-
-                    let rowClass = '';
-                    let variance = 'N/A';
-
-                    if (planned !== null && billed !== null && planned !== 'N/A' && billed !== 'N/A') {
-                        const diff = Math.abs((billed - planned) / planned * 100);
-                        variance = diff.toFixed(1) + '%';
-                        rowClass = diff < 5 ? 'match' : 'mismatch';
-                    } else if (!planned || planned === 'N/A') {
-                        rowClass = 'missing';
-                    }
+                    const plannedMA = row.amount_planned ? Math.round(row.amount_planned) : null;
+                    const billedMA = row.amount_billed ? Math.round(row.amount_billed) : null;
+                    // Convert accounts from ISK to ma.kr. (divide by 1,000,000)
+                    const actualMA = row.amount_actual ? Math.round(row.amount_actual / 1000000) : null;
 
                     tr.innerHTML = `
-                        <td>${row.year}</td>
-                        <td>${row.institution}</td>
-                        <td>${row.budget_line}</td>
-                        <td class="numeric ${rowClass}">${formatNumber(planned)}</td>
-                        <td class="numeric ${rowClass}">${formatNumber(billed)}</td>
-                        <td class="numeric ${rowClass}">${variance}</td>
-                        <td style="font-size: 0.8rem;">
-                            ${row.plan_document ? '📋' : ''}
-                            ${row.bill_document ? '📊' : ''}
-                            ${row.account_document ? '✓' : ''}
-                        </td>
+                        <td class="malefnasvid-nr">${row.malefnasvid_nr}</td>
+                        <td class="malefnasvid-name">${row.malefnasvid || 'Óþekkt'}</td>
+                        <td class="numeric">${plannedMA !== null ? formatNumberIS(plannedMA) : '—'}</td>
+                        <td class="numeric">${billedMA !== null ? formatNumberIS(billedMA) : '—'}</td>
+                        <td class="numeric">${actualMA !== null ? formatNumberIS(actualMA) : '—'}</td>
                     `;
                     tbody.appendChild(tr);
                 });
+
+                document.getElementById('summary').classList.remove('hidden');
+                document.getElementById('result-count').textContent = data.length;
             })
             .catch(error => {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('error').style.display = 'block';
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('error').classList.remove('hidden');
                 document.getElementById('error').textContent = `Villa: ${error.message}`;
             });
     }
 
-    // Load data on page load
+    function loadSourceData(source) {
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('error').classList.add('hidden');
+        document.getElementById('table-body').innerHTML = '';
+
+        fetch(`/api/malefnasvid?source=${source}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Network error');
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('loading').classList.add('hidden');
+
+                if (data.length === 0) {
+                    document.getElementById('table-body').innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem;">Engin gögn fundust fyrir þessa heimild.</td></tr>';
+                    return;
+                }
+
+                // Get all available years
+                const allYears = new Set();
+                data.forEach(row => {
+                    Object.keys(row).forEach(key => {
+                        if (/^\d{4}$/.test(key)) {
+                            allYears.add(parseInt(key));
+                        }
+                    });
+                });
+                const years = Array.from(allYears).sort((a, b) => a - b);
+
+                // Build table header
+                const headers = [
+                    { text: '#', class: 'malefnasvid-nr' },
+                    { text: 'Málefnasvið', class: 'malefnasvid-name' },
+                    ...years.map(y => ({ text: String(y), class: 'numeric' }))
+                ];
+
+                const headerRow = document.getElementById('table-header');
+                headerRow.innerHTML = headers.map(h => `<th class="${h.class}">${h.text}</th>`).join('');
+
+                // Build table body
+                const tbody = document.getElementById('table-body');
+                tbody.innerHTML = '';
+
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    let cells = `
+                        <td class="malefnasvid-nr">${row.malefnasvid_nr}</td>
+                        <td class="malefnasvid-name">${row.malefnasvid || 'Óþekkt'}</td>
+                    `;
+
+                    years.forEach(year => {
+                        const value = row[String(year)];
+                        // Convert ISK to ma.kr. for accounts data (if > 1000000)
+                        let displayValue = '—';
+                        if (value !== null && value !== undefined) {
+                            const numValue = value > 1000000 ? Math.round(value / 1000000) : Math.round(value);
+                            displayValue = formatNumberIS(numValue);
+                        }
+                        cells += `<td class="numeric">${displayValue}</td>`;
+                    });
+
+                    tr.innerHTML = cells;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('summary').classList.remove('hidden');
+                document.getElementById('result-count').textContent = data.length;
+
+                // Draw chart
+                drawChart(data, source, years);
+            })
+            .catch(error => {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('error').classList.remove('hidden');
+                document.getElementById('error').textContent = `Villa: ${error.message}`;
+            });
+    }
+
+    function drawChart(data, source, years) {
+        // Calculate totals per year
+        const yearTotals = {};
+        years.forEach(year => {
+            yearTotals[year] = 0;
+            data.forEach(row => {
+                const value = row[String(year)];
+                if (value !== null && value !== undefined) {
+                    // Convert ISK to ma.kr. if needed
+                    yearTotals[year] += value > 1000000 ? value / 1000000 : value;
+                }
+            });
+        });
+
+        const ctx = document.getElementById('comparison-chart').getContext('2d');
+
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: years,
+                datasets: [{
+                    label: 'Samtals (ma.kr.)',
+                    data: years.map(y => yearTotals[y]),
+                    backgroundColor: '#0066cc',
+                    borderColor: '#0052a3',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Upphæð (ma.kr.)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Load default year on page load
     document.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('year')) {
-            document.getElementById('year-select').value = urlParams.get('year');
+        const years = {{ years | tojson }};
+        if (years.length > 0) {
+            const latestYear = years[years.length - 1];
+            selectedYear = latestYear;
+
+            // Mark the latest year button as active
+            document.querySelectorAll('.year-btn').forEach(btn => {
+                if (parseInt(btn.textContent) === latestYear) {
+                    btn.classList.add('active');
+                }
+            });
+
+            loadData();
         }
     });
 </script>

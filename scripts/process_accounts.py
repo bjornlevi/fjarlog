@@ -38,13 +38,13 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
     """
     Extract budget account data from a Ríkisreikningur CSV file.
 
-    CSV columns: TimabilAr, RaduneytiHeiti, StofnunHeiti, MalaflokkurHeiti, Samtals (amount)
+    CSV columns: TimabilAr, RaduneytiHeiti, StofnunHeiti, MalaflokkurHeiti, MalefnasvidNumer, MalefnasvidHeiti, Samtals (amount)
 
     Args:
         file_path: Path to the CSV file
 
     Returns:
-        DataFrame with columns: year, source_type, document_id, institution, budget_line, amount
+        DataFrame with columns: year, source_type, document_id, malefnasvid_nr, malefnasvid, institution, budget_line, amount
         Or None if extraction fails
     """
     try:
@@ -68,9 +68,12 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
         result_rows = []
 
         # Expected columns for Ríkisreikningur data
-        required_cols = ['TimabilAr', 'RaduneytiHeiti', 'MalaflokkurHeiti', 'Samtals']
-        if not all(col in df.columns for col in required_cols):
-            logger.warning(f"  Missing expected columns. Found: {df.columns.tolist()}")
+        required_cols = ['TimabilAr', 'RaduneytiHeiti', 'MalaflokkurHeiti', 'MalefnasvidNumer', 'MalefnasvidHeiti', 'Samtals']
+        has_malefnasvid = all(col in df.columns for col in ['MalefnasvidNumer', 'MalefnasvidHeiti'])
+        has_required = all(col in df.columns for col in ['TimabilAr', 'RaduneytiHeiti', 'MalaflokkurHeiti', 'Samtals'])
+
+        if not has_required:
+            logger.warning(f"  Missing required columns. Found: {df.columns.tolist()}")
             return None
 
         # Extract rows
@@ -85,6 +88,15 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
                 if row_year != year:
                     continue
 
+                # Get málefnasvið (policy area) if available
+                malefnasvid_nr = None
+                malefnasvid = None
+                if has_malefnasvid:
+                    malefnasvid_nr = str(int(row['MalefnasvidNumer'])).zfill(2) if pd.notna(row['MalefnasvidNumer']) else None
+                    malefnasvid_name = str(row['MalefnasvidHeiti']).strip() if pd.notna(row['MalefnasvidHeiti']) else None
+                    if malefnasvid_nr and malefnasvid_name:
+                        malefnasvid = f"{malefnasvid_nr} {malefnasvid_name}"
+
                 # Get institution (ministry)
                 institution = str(row['RaduneytiHeiti']).strip() if pd.notna(row['RaduneytiHeiti']) else "Unknown"
 
@@ -92,22 +104,25 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
                 budget_line = str(row['MalaflokkurHeiti']).strip() if pd.notna(row['MalaflokkurHeiti']) else "Unknown"
 
                 # Get amount (actual spending)
+                # Ríkisreikningur amounts are in ISK; convert to millions (ma.kr.) to match bills/plans
                 amount = None
                 if pd.notna(row['Samtals']):
                     try:
-                        amount = float(row['Samtals'])
+                        amount = float(row['Samtals']) / 1_000_000
                     except (ValueError, TypeError):
                         amount_str = str(row['Samtals']).strip()
                         # Handle Icelandic number format (comma as decimal, period as thousands)
                         amount_str = amount_str.replace(".", "").replace(",", ".")
-                        amount = float(amount_str)
+                        amount = float(amount_str) / 1_000_000
 
-                # Only include non-zero amounts
-                if amount is not None and amount != 0:
+                # Only include non-zero amounts and records with malefnasvid
+                if amount is not None and amount != 0 and malefnasvid_nr:
                     result_rows.append({
                         "year": year,
                         "source_type": "accounts",
                         "document_id": doc_id,
+                        "malefnasvid_nr": malefnasvid_nr,
+                        "malefnasvid": malefnasvid,
                         "institution": institution,
                         "budget_line": budget_line,
                         "amount": amount,
@@ -118,8 +133,16 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
                 continue
 
         if result_rows:
-            logger.info(f"  Extracted {len(result_rows)} records")
-            return pd.DataFrame(result_rows)
+            # Group by malefnasvid_nr and sum amounts
+            df_result = pd.DataFrame(result_rows)
+            df_grouped = df_result.groupby(["malefnasvid_nr", "malefnasvid"], as_index=False).agg({
+                "year": "first",
+                "source_type": "first",
+                "document_id": "first",
+                "amount": "sum"
+            })
+            logger.info(f"  Extracted {len(df_result)} records, aggregated to {len(df_grouped)} málefnasvið")
+            return df_grouped
         else:
             logger.warning(f"  No records extracted from {file_path.name}")
             return None

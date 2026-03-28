@@ -22,6 +22,7 @@ PROCESSING_STEPS = [
     ("Budget Bills", "process_bills.py"),
     ("Budget Accounts", "process_accounts.py"),
     ("Build Comparison", "build_comparison.py"),
+    ("Build Malefnasvið Comparison", "build_malefnasvid_comparison.py"),
 ]
 
 

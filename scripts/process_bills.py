@@ -138,6 +138,110 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
         return None
 
 
+def extract_malefnasvid_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
+    """
+    Extract málefnasvið (policy areas) data from 2022-2023 XLSX budget bill files.
+
+    2022 format: Sheet "5_3-1" with policy areas
+    2023 format: Sheet "5_1-5" with policy areas
+
+    Args:
+        file_path: Path to the XLSX file
+
+    Returns:
+        DataFrame with columns: year, malefnasvid_nr, malefnasvid, source_type, document_id, amount
+        Or None if extraction fails
+    """
+    try:
+        logger.info(f"  Extracting málefnasvið from: {file_path.name}")
+
+        # Extract year from filename
+        match = re.search(r"bill_(\d{4})", file_path.name)
+        if not match:
+            logger.debug(f"    Could not parse year from filename: {file_path.name}")
+            return None
+
+        year = int(match.group(1))
+        doc_id = f"bill_{year}"
+
+        # Read Excel file
+        xls = pd.ExcelFile(file_path, engine='openpyxl')
+
+        # Find the málefnasvið sheet (different names for 2022 vs 2023)
+        malefnasvid_sheet = None
+        for sheet_name in xls.sheet_names:
+            if sheet_name in ["5_3-1", "5_1-5"]:  # 2022 and 2023 sheet names
+                malefnasvid_sheet = sheet_name
+                break
+
+        if not malefnasvid_sheet:
+            logger.debug(f"    Málefnasvið sheet not found in sheets: {xls.sheet_names}")
+            return None
+
+        logger.debug(f"    Found sheet: {malefnasvid_sheet}")
+
+        # Read the sheet without headers (structure varies)
+        df = pd.read_excel(file_path, sheet_name=malefnasvid_sheet, engine='openpyxl', header=None)
+
+        result_rows = []
+
+        # Policy areas are in rows 3-37 (0-indexed)
+        # Column 0 has the policy area (e.g., "01 Alþingi og eftirlitsstofnanir þess")
+        # Column 2 has the bill amount (Frumvarp for the year)
+        for idx in range(3, min(38, len(df))):
+            row = df.iloc[idx]
+            policy_area_str = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else None
+
+            if not policy_area_str:
+                continue
+
+            # Extract numeric code from "01 Alþingi og eftirlitsstofnanir þess" → "01"
+            code_match = re.match(r"^(\d{2})\s+(.+)$", policy_area_str)
+            if not code_match:
+                continue
+
+            malefnasvid_nr = code_match.group(1)
+            malefnasvid = policy_area_str
+
+            # Column 2 (index 2) has the bill amount
+            if len(row) > 2:
+                val = row.iloc[2]
+
+                if pd.notna(val):
+                    try:
+                        # Parse amount
+                        if isinstance(val, (int, float)):
+                            amount = float(val)
+                        else:
+                            amount_str = str(val).strip()
+                            amount_str = amount_str.replace(".", "").replace(",", ".")
+                            amount = float(amount_str)
+
+                        # Only include non-zero amounts
+                        if amount != 0:
+                            result_rows.append({
+                                "year": year,
+                                "malefnasvid_nr": malefnasvid_nr,
+                                "malefnasvid": malefnasvid,
+                                "source_type": "bill",
+                                "document_id": doc_id,
+                                "amount": amount,
+                            })
+                    except (ValueError, AttributeError):
+                        continue
+
+        if result_rows:
+            logger.info(f"    Extracted {len(result_rows)} málefnasvið records")
+            return pd.DataFrame(result_rows)
+        else:
+            logger.debug(f"    No málefnasvið records extracted from {malefnasvid_sheet}")
+            return None
+
+    except Exception as e:
+        logger.debug(f"  Error extracting málefnasvið from {file_path.name}: {e}")
+        return None
+
+
 def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
     """
     Extract budget data from a CSV file (semicolon-delimited Icelandic budget data).
@@ -148,7 +252,7 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
         file_path: Path to the CSV file
 
     Returns:
-        DataFrame with columns: year, source_type, document_id, institution, budget_line, amount
+        DataFrame with columns: year, source_type, document_id, institution, budget_line, malefnasvid_nr, malefnasvid, amount
         Or None if extraction fails
     """
     try:
@@ -172,7 +276,26 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
 
         result_rows = []
 
-        # Expected columns: Ár, Afurð, FlokkunNy, Málefnasvið, Málaflokkur, Ráðuneyti, Liður, Viðfang, TegundNota, Upphæð
+        # Filter to only "Framlög úr ríkissjóði" (grants from treasury) type
+        # CSV contains multiple Tegund/TegundNota (type) rows per item - we only want the allocation type
+        # For 2025-2026 where this type doesn't exist, use "Gjöld" (expenses) instead
+        type_col = None
+        if 'Tegund' in df.columns:
+            type_col = 'Tegund'
+        elif 'TegundNota' in df.columns:
+            type_col = 'TegundNota'
+        elif len(df.columns) > 8:
+            type_col = df.columns[8]
+
+        if type_col:
+            # Try primary filter first
+            if 'Framlög úr ríkissjóði' in df[type_col].values:
+                df = df[df[type_col] == 'Framlög úr ríkissjóði']
+            elif 'Gjöld' in df[type_col].values:
+                # Fallback for 2025-2026 format
+                df = df[df[type_col] == 'Gjöld']
+
+        # Expected columns: Ár, Afurð, FlokkunNy, Málefnasvið, Málaflokkur, Ráðuneyti, Liður, Viðfang, Tegund, Upphæð
         if len(df.columns) < 10:
             logger.warning(f"  CSV has unexpected structure: {len(df.columns)} columns")
             return None
@@ -185,8 +308,25 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
 
             try:
                 # Column indices (0-based)
-                # 0: Ár (Year), 5: Ráðuneyti (Ministry), 4: Málaflokkur (Category), 9: Upphæð (Amount)
+                # 0: Ár (Year)
+                # 3: Málefnasvið (Policy area)
+                # 4: Málaflokkur (Category)
+                # 5: Ráðuneyti (Ministry)
+                # 9: Upphæð (Amount)
                 row_year = int(row.iloc[0]) if pd.notna(row.iloc[0]) else None
+
+                # Extract málefnasvið (policy area) with code and name
+                malefnasvid_str = str(row.iloc[3]).strip() if pd.notna(row.iloc[3]) else None
+                malefnasvid_nr = None
+                malefnasvid = None
+
+                if malefnasvid_str:
+                    # Extract numeric code from "35 Alþjóðleg þróunarsamvinna" → "35"
+                    code_match = re.match(r"^(\d+)\s+(.+)$", malefnasvid_str)
+                    if code_match:
+                        malefnasvid_nr = code_match.group(1)
+                        malefnasvid = malefnasvid_str
+
                 institution = str(row.iloc[5]).strip() if pd.notna(row.iloc[5]) else "Unknown"
                 budget_line = str(row.iloc[4]).strip() if pd.notna(row.iloc[4]) else str(row.iloc[8]).strip()
 
@@ -196,11 +336,13 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
                 amount = float(amount_str)
 
                 # Only include positive amounts (exclude zeros and negative values)
-                if amount > 0 and row_year == year:
+                if amount > 0 and row_year == year and malefnasvid_nr:
                     result_rows.append({
                         "year": year,
                         "source_type": "bill",
                         "document_id": doc_id,
+                        "malefnasvid_nr": malefnasvid_nr,
+                        "malefnasvid": malefnasvid,
                         "institution": institution,
                         "budget_line": budget_line,
                         "amount": amount,
@@ -210,8 +352,16 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
                 continue
 
         if result_rows:
-            logger.info(f"  Extracted {len(result_rows)} records")
-            return pd.DataFrame(result_rows)
+            # Group by malefnasvid_nr and sum amounts
+            df_result = pd.DataFrame(result_rows)
+            df_grouped = df_result.groupby(["malefnasvid_nr", "malefnasvid"], as_index=False).agg({
+                "year": "first",
+                "source_type": "first",
+                "document_id": "first",
+                "amount": "sum"
+            })
+            logger.info(f"  Extracted {len(df_result)} records, aggregated to {len(df_grouped)} málefnasvið")
+            return df_grouped
         else:
             logger.warning(f"  No records extracted from {file_path.name}")
             return None
@@ -262,6 +412,15 @@ def process_all_bills() -> None:
                 logger.info(f"  Saved: {output_file.name}")
                 processed_count += 1
                 processed_years.add(year)
+
+        # Also extract málefnasvið data from XLSX files
+        df_malefnasvid = extract_malefnasvid_from_xlsx(file_path)
+
+        if df_malefnasvid is not None and not df_malefnasvid.empty:
+            year = df_malefnasvid["year"].iloc[0]
+            output_file = PROCESSED_DIR / f"bill_{year}_malefnasvid.parquet"
+            df_malefnasvid.to_parquet(output_file, compression="snappy")
+            logger.info(f"  Saved: {output_file.name}")
 
     logger.info(f"\nProcessed {processed_count} bill years successfully")
 
