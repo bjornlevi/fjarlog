@@ -51,11 +51,20 @@ def index():
     if df is None:
         return render_template("error.html", message="Data not available. Please run the pipeline first."), 500
 
+    # Filter out aggregate budget entries (not actual institutions)
+    aggregate_categories = {
+        'Annað', 'Frumgjöld', 'Frumjöfnuður', 'Frumtekjur', 'Government',
+        'Heildargjöld', 'Heildarjöfnuður', 'Heildartekjur',
+        'Vaxtagjöld', 'Vaxtajöfnuður', 'Vaxtatekjur', 'Vaxtagjöld ríkissjóðs'
+    }
+
+    df_institutions = df[~df["institution"].isin(aggregate_categories)]
+
     # Get basic stats
     stats = {
         "total_rows": len(df),
         "years": sorted(df["year"].unique().tolist()),
-        "institutions": len(df["institution"].unique()),
+        "institutions": len(df_institutions["institution"].unique()),
         "budget_lines": len(df["budget_line"].unique()),
     }
 
