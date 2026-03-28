@@ -15,7 +15,7 @@ help:
 	@echo ""
 	@echo "Setup & Installation:"
 	@echo "  make install        Install dependencies"
-	@echo "  make setup          Install dependencies and Playwright browsers"
+	@echo "  make setup          Install dependencies"
 	@echo ""
 	@echo "Scraping:"
 	@echo "  make scrape         Run all data source scrapers"
@@ -42,7 +42,6 @@ install:
 	$(PIP) install -r requirements.txt
 
 setup: install
-	$(PYTHON) -m playwright install
 
 all: scrape download process curate
 	@echo ""

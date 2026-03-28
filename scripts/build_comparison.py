@@ -85,7 +85,7 @@ def get_plan_year_range(doc_id: str) -> Tuple[int, int]:
 
 
 def build_comparison() -> None:
-    """Build the comparison parquet from processed data."""
+    """Build the comparison parquet from processed data using fully vectorized operations."""
     logger.info("Loading processed data...")
 
     plans_df = load_processed_files("plans")
@@ -103,94 +103,118 @@ def build_comparison() -> None:
 
     logger.info("\nBuilding comparison table...")
 
-    # Create a comparison table
-    # Key: (year, budget_line, institution)
-    comparison_rows = []
+    # Expand plans to all covered years (vectorized)
+    if not plans_df.empty:
+        plans_expanded = []
+        for _, row in plans_df.iterrows():
+            start_year, end_year = get_plan_year_range(row["document_id"])
+            if start_year and end_year:
+                years = list(range(start_year, end_year + 1))
+                plan_copy = row.to_dict()
+                plan_copy["year"] = years
+                plans_expanded.append(plan_copy)
 
-    # Collect all unique (year, budget_line) combinations
-    unique_entries = set()
+        if plans_expanded:
+            # Convert to dataframe and explode year column
+            plans_expanded_df = pd.DataFrame(plans_expanded)
+            plans_df_expanded = plans_expanded_df.explode("year", ignore_index=True)
+        else:
+            plans_df_expanded = pd.DataFrame()
+    else:
+        plans_df_expanded = pd.DataFrame()
 
-    for _, row in bills_df.iterrows():
-        unique_entries.add((row["year"], row["budget_line"], row["institution"]))
+    # Collect all unique (year, budget_line, institution) from bills and accounts
+    all_entries = []
+    if not bills_df.empty:
+        all_entries.append(bills_df[["year", "budget_line", "institution"]].drop_duplicates())
+    if not accounts_df.empty:
+        all_entries.append(accounts_df[["year", "budget_line", "institution"]].drop_duplicates())
+    if not plans_df_expanded.empty:
+        all_entries.append(plans_df_expanded[["year", "budget_line", "institution"]].drop_duplicates())
 
-    for _, row in accounts_df.iterrows():
-        unique_entries.add((row["year"], row["budget_line"], row["institution"]))
-
-    for _, row in plans_df.iterrows():
-        unique_entries.add((row["year"], row["budget_line"], row["institution"]))
+    if all_entries:
+        unique_entries = pd.concat(all_entries, ignore_index=True).drop_duplicates().reset_index(drop=True)
+    else:
+        unique_entries = pd.DataFrame()
 
     logger.info(f"Found {len(unique_entries)} unique (year, budget_line, institution) combinations")
 
-    # Build comparison rows
-    for year, budget_line, institution in sorted(unique_entries):
-        # Find matching plan (earliest plan that covers this year)
-        planned_amount = None
-        plan_doc_id = None
+    if unique_entries.empty:
+        logger.warning("No entries found!")
+        return
 
-        for _, row in plans_df.iterrows():
-            if row["budget_line"] == budget_line and row["institution"] == institution:
-                start_year, end_year = get_plan_year_range(row["document_id"])
-                if start_year and start_year <= year <= end_year:
-                    if plan_doc_id is None or start_year > int(plan_doc_id.split("_")[1]):
-                        planned_amount = row["amount"]
-                        plan_doc_id = row["document_id"]
-
-        # Find matching bill
-        billed_amount = None
-        bill_doc_id = None
-
-        for _, row in bills_df.iterrows():
-            if (
-                row["year"] == year
-                and row["budget_line"] == budget_line
-                and row["institution"] == institution
-            ):
-                billed_amount = row["amount"]
-                bill_doc_id = row["document_id"]
-                break
-
-        # Find matching account
-        actual_amount = None
-        account_doc_id = None
-
-        for _, row in accounts_df.iterrows():
-            if (
-                row["year"] == year
-                and row["budget_line"] == budget_line
-                and row["institution"] == institution
-            ):
-                actual_amount = row["amount"]
-                account_doc_id = row["document_id"]
-                break
-
-        comparison_rows.append({
-            "year": year,
-            "institution": institution,
-            "budget_line": budget_line,
-            "amount_planned": planned_amount,
-            "amount_billed": billed_amount,
-            "amount_actual": actual_amount,
-            "plan_document": plan_doc_id,
-            "bill_document": bill_doc_id,
-            "account_document": account_doc_id,
-        })
-
-    if comparison_rows:
-        comparison_df = pd.DataFrame(comparison_rows)
-
-        # Sort by year and institution
-        comparison_df = comparison_df.sort_values(["year", "institution", "budget_line"])
-
-        # Save to parquet
-        output_file = CURATED_DIR / "comparison.parquet"
-        comparison_df.to_parquet(output_file, compression="snappy")
-
-        logger.info(f"\nSaved comparison to: {output_file}")
-        logger.info(f"Total rows: {len(comparison_df)}")
-        logger.info(f"\nSample rows:")
-        logger.info(comparison_df.head(10).to_string())
+    # Merge bills data
+    if not bills_df.empty:
+        bills_merged = bills_df[["year", "budget_line", "institution", "amount", "document_id"]].copy()
+        bills_merged.columns = ["year", "budget_line", "institution", "amount_billed", "bill_document"]
+        unique_entries = unique_entries.merge(
+            bills_merged,
+            on=["year", "budget_line", "institution"],
+            how="left"
+        )
     else:
-        logger.warning("No comparison data generated")
+        unique_entries["amount_billed"] = None
+        unique_entries["bill_document"] = None
+
+    # Merge accounts data
+    if not accounts_df.empty:
+        accounts_merged = accounts_df[["year", "budget_line", "institution", "amount", "document_id"]].copy()
+        accounts_merged.columns = ["year", "budget_line", "institution", "amount_actual", "account_document"]
+        unique_entries = unique_entries.merge(
+            accounts_merged,
+            on=["year", "budget_line", "institution"],
+            how="left"
+        )
+    else:
+        unique_entries["amount_actual"] = None
+        unique_entries["account_document"] = None
+
+    # Merge plans data - for each (year, budget_line, institution), get the best matching plan
+    if not plans_df_expanded.empty:
+        # Group by (year, budget_line, institution) and take the plan with latest start_year
+        plans_best = plans_df_expanded.copy()
+
+        # Add start_year for sorting
+        plans_best["start_year"] = plans_best["document_id"].apply(
+            lambda x: int(x.split("_")[1]) if "_" in x else 0
+        )
+
+        # Sort by start_year descending and take first (latest plan)
+        plans_best = plans_best.sort_values("start_year", ascending=False).drop_duplicates(
+            subset=["year", "budget_line", "institution"],
+            keep="first"
+        )
+
+        plans_merged = plans_best[["year", "budget_line", "institution", "amount", "document_id"]].copy()
+        plans_merged.columns = ["year", "budget_line", "institution", "amount_planned", "plan_document"]
+
+        unique_entries = unique_entries.merge(
+            plans_merged,
+            on=["year", "budget_line", "institution"],
+            how="left"
+        )
+    else:
+        unique_entries["amount_planned"] = None
+        unique_entries["plan_document"] = None
+
+    # Reorder columns
+    comparison_df = unique_entries[[
+        "year", "institution", "budget_line",
+        "amount_planned", "amount_billed", "amount_actual",
+        "plan_document", "bill_document", "account_document"
+    ]].copy()
+
+    # Sort by year and institution
+    comparison_df = comparison_df.sort_values(["year", "institution", "budget_line"]).reset_index(drop=True)
+
+    # Save to parquet
+    output_file = CURATED_DIR / "comparison.parquet"
+    comparison_df.to_parquet(output_file, compression="snappy")
+
+    logger.info(f"\nSaved comparison to: {output_file}")
+    logger.info(f"Total rows: {len(comparison_df)}")
+    logger.info(f"\nSample rows:")
+    logger.info(comparison_df.head(10).to_string())
 
 
 if __name__ == "__main__":
