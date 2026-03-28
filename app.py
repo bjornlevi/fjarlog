@@ -15,6 +15,15 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+# Custom Jinja2 filter for Icelandic number formatting
+def format_number_is(value):
+    """Format number with Icelandic thousands separator (.)"""
+    if not isinstance(value, (int, float)):
+        return value
+    return "{:,}".format(int(value)).replace(",", ".")
+
+app.jinja_env.filters['format_number_is'] = format_number_is
+
 # Paths
 PROJECT_DIR = Path(__file__).parent
 DATA_DIR = PROJECT_DIR / "data" / "curated"
