@@ -6,9 +6,9 @@
   },
   "methodology": {
     "cpi_wage_split": {
-      "wages": 0.46,
-      "cpi": 0.54,
-      "notes": "Based on actual government budget composition (Ríkisreikningur 2023): wages (Launagjöld - TegundL2 51) = 45.8%, non-wage expenses (goods, services, asset purchases, etc.) = 54.2%. Source: Analysis of Ríkisreikningur_gogn_2023.csv"
+      "wages": 0.27,
+      "cpi": 0.73,
+      "notes": "Based on official government budget accounts (Ríkisreikningur 2024 PDF): wages (Laun og launatengd gjöld) = 386.602 thousand ISK, total expenses excluding capital items = 1,428.180 thousand ISK. Wage share = 27.1%, non-wage (price/CPI) share = 72.9%."
     }
   },
   "cpi": {
