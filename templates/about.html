@@ -7,16 +7,24 @@
 
 <h3>Verkefnið</h3>
 
-<p>Fjárlagagreining er opið verkefni sem sameinar gögn úr ýmsum heimildum um fjárlög ríkisins. Markmiðið er að gera opinber fjárlög og reikninga aðgengilega og auðlesandi fyrir almenning.</p>
+<p>Fjárlagagreining er opið verkefni sem sameinar gögn úr ýmsum heimildum um fjárlög ríkisins. Markmiðið er að gera opinber fjárlög og reikninga aðgengilega og auðlesandi fyrir almenning með gagnvirku viðmóti fyrir samanburð og greiningu.</p>
+
+<h3>Helstu eiginleikar</h3>
+
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li><strong>Samanburður</strong> - Berðu saman fjárlagagögn eftir 35 stefnusvið (málefnasvið) frá þremur heimildum fyrir valið ár</li>
+    <li><strong>Fjármálaáætlun</strong> - Skoðaðu væntanlegar fjárlagaúthlutanir fyrir næstu fimm ár með möguleika á verðlögunaraðlögun</li>
+    <li><strong>Verðlögunaraðlögun</strong> - Samnýtðu fjárlagaúrræði milli ára með aðlögun fyrir verðbólgu og launahækkanir</li>
+</ul>
 
 <h3>Gögn</h3>
 
-<p>Öll gögn sem notuð eru hér koma frá opinberum heimildum:</p>
+<p>Öll gögn sem notuð eru hér koma frá opinberum heimildum ríkisins:</p>
 
 <ul style="margin: 1rem 0; padding-left: 2rem;">
-    <li><strong>Fjárlagafrumvarp</strong> - Tillögur til árlegra fjárlaga, gefnar út af Stjórnarráði Íslands</li>
-    <li><strong>Fjármálaáætlun</strong> - Fjórar ára áætlanir fyrir tekjur og gjöld</li>
-    <li><strong>Ríkisreikningur</strong> - Opinbir reikningsskil og raunveruleg gjaldareikning (væntanlegur)</li>
+    <li><strong>Fjárlagafrumvarp (Fjárlög)</strong> - Tillögur til árlegra fjárlaga, gefnar út af Stjórnarráði Íslands</li>
+    <li><strong>Fjármálaáætlun</strong> - Fjórar til fimm ára áætlanir fyrir tekjur og gjöld yfir 35 stefnusvið</li>
+    <li><strong>Ríkisreikningur</strong> - Opinbir reikningsskil með raunverulegum gjaldareikuningi</li>
 </ul>
 
 <h3>Gagnavinnsla</h3>
@@ -25,14 +33,39 @@
 
 <dl style="margin: 1rem 0;">
     <dt><strong>Landing Zone (Hrátt gögn)</strong></dt>
-    <dd>Rá gögn frá opinberum heimildum (CSV, XLSX, PDF)</dd>
+    <dd>Hráð gögn frá opinberum heimildum (CSV, XLSX, PDF) - óbreytt frá uppruna</dd>
 
     <dt><strong>Silver Layer (Úrvinnsla)</strong></dt>
-    <dd>Gögn eru óskoruð og staðlöð með sameiginlegu flokkunarkerfi</dd>
+    <dd>Gögn eru úrvinnsluð og staðlöð með sameiginlegu flokkunarkerfi (málefnasvið, stofnun, fjárlagaröð)</dd>
 
     <dt><strong>Gold Layer (Úrtak)</strong></dt>
-    <dd>Samanburðartöflur sem tengja mismunandi heimildir</dd>
+    <dd>Samanburðartöflur sem tengja mismunandi heimildir með sameiginlegum lyklum (ár + málefnasvið)</dd>
 </dl>
+
+<h3>Verðlögunaraðlögun (Inflation Adjustment)</h3>
+
+<p>Fjármálaáætlun-síðan gerir þér kleift að aðlaga væntanlegri úthlutun fyrir verðbólgu og launahækkanir svo þú getir borið saman fjárlagakosti á milli ára á sama verðlagi.</p>
+
+<h4>Aðferðafræði</h4>
+
+<p>Verðlögunaraðlögunin byggir á samsettu verðlagsvísitölu og launavísitölu með eftirfarandi vægi:</p>
+
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li><strong>73%</strong> Verðbólga (CPI - Consumer Price Index frá Hagstofu Íslands)</li>
+    <li><strong>27%</strong> Launahækkanir (byggt á raunverulegri hlutfalli launakostnaðar í ríkisútgjöldum)</li>
+</ul>
+
+<p><em>Þetta vægi er byggt á greiningu á opinberum ríkisreikningi frá 2019 og 2024 þar sem sýnt var að launakostnaður fer um 27-28% af heildareggildri ríkisútgjöldum, en hinir 72-73% eru vörur, þjónusta og aðrir rekstrarkostnaðir sem miðast við verðbólgu.</em></p>
+
+<h4>Dæmi</h4>
+
+<p>Ef þú skoðar fjármálaáætlun fyrir árið 2021 og slökkvir á verðlögunaraðlögun:</p>
+
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li>Upphafleg úthlutun (2021 verð): 6.995 ma.kr.</li>
+    <li>Aðlöguð úthlutun (2026 verð): 7.850 ma.kr.</li>
+    <li>Hækkun: 12,2% (byggt á verðbólgu 2021-2022)</li>
+</ul>
 
 <h3>Tæknin</h3>
 
@@ -41,36 +74,47 @@
     <li><strong>Python</strong> fyrir gagnavinnslu og sjálfvirkni</li>
     <li><strong>Pandas</strong> fyrir gagnakeilingu</li>
     <li><strong>Flask</strong> fyrir vefkerfi</li>
-    <li><strong>Parquet</strong> fyrir skilvirkri gagnageymslu</li>
+    <li><strong>Parquet</strong> fyrir skilvirka gagnageymslu</li>
+    <li><strong>pdfplumber</strong> fyrir PDF útdrátt</li>
 </ul>
 
-<h3>Núverandi gögn</h3>
+<h3>Gögn sem nú eru aðgengileg</h3>
 
 <p>Við höfum nú aðgang að:</p>
 <ul style="margin: 1rem 0; padding-left: 2rem;">
-    <li>✓ Fjárlagafrumvarp 2025 (4.000+ liðir)</li>
-    <li>✓ Fjármálaáætlun 2025-2029 (200+ liðir)</li>
-    <li>⏳ Ríkisreikningur (væntanlegur)</li>
-    <li>⏳ Söguleg gögn 2018-2024 (verið er að safna)</li>
+    <li>✓ Fjárlagafrumvarp 2021-2026</li>
+    <li>✓ Fjármálaáætlun 2021-2031 (7 skjöl með 5 ára skjóðum)</li>
+    <li>✓ Ríkisreikningur 2015-2025</li>
+    <li>✓ Söguleg gögn fyrir öll þrjú kerfi (15 ár)</li>
+    <li>✓ Verðbólgugögn (CPI 2015-2022)</li>
 </ul>
 
 <h3>Framtíð</h3>
 
 <p>Fyrirhugaðar endurbætur:</p>
 <ul style="margin: 1rem 0; padding-left: 2rem;">
-    <li>Innflutningur sögulegs gagna (2018-2024)</li>
-    <li>Viðbót ríkisreiknings (raunverulegir kostnaðir)</li>
-    <li>Útfærsla gagnaflutnings (gröf og myndir)</li>
-    <li>Tengill við greiðslugögn frá rikid.is</li>
-    <li>Greining á þróun og mynstrum</li>
+    <li>Nauðsynleg: Launavísitölufelag frá Hagstofu Íslands til að fullkomna verðlögunaraðlögun</li>
+    <li>Viðbót gagna fyrir 2026+ ár (núverandi og horfur)</li>
+    <li>Myndir og töflur fyrir þróunargreining</li>
+    <li>Stofnun-stig samanburður (hvernig útgjöld dreifast á stofnanir)</li>
+    <li>Trendgreining og spá fyrir komandi ár</li>
+</ul>
+
+<h3>Um gagnaheimildir</h3>
+
+<p>Öll gögn eru söfnuð og unnin frá opinberum heimildum ríkisins:</p>
+
+<ul style="margin: 1rem 0; padding-left: 2rem;">
+    <li><strong>Stjórnarráð Íslands</strong> - Fjárlagafrumvarp og fjármálaáætlanir</li>
+    <li><strong>Hagstofa Íslands</strong> - Verðbólgugögn (CPI og launavísitölufelag)</li>
 </ul>
 
 <h3>Spurningar og endurgjöf</h3>
 
-<p>Ertu með spurningar um gögnin eða tillögur til umbóta? Sendu á GitHub verkefni eða tengst beint.</p>
+<p>Ertu með spurningar um gögnin eða tillögur til umbóta? Sendu á <a href="https://github.com/bjornlevi/fjarlog">GitHub verkefnið</a> eða tengst beint.</p>
 
-<h3>Leyfi</h3>
+<h3>Leyfi og aðgangur</h3>
 
-<p>Þetta verkefni og öll gögn eru aðgengileg undir opnum skilmálum. Gögn frá stjórnarráðinu og opinum heimildum eru sérfræðilegir frekar en með útgáfu.</p>
+<p>Þetta verkefni og öll gögn eru aðgengileg sem opinn kóði. Gögn frá Stjórnarráði og Hagstofu Íslands eru opinbir og fáanlegir undir opinberum skilmálum.</p>
 
 {% endblock %}
