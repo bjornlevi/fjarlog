@@ -599,7 +599,7 @@
             data.forEach(row => {
                 const value = row[String(year)];
                 if (value !== null && value !== undefined) {
-                    // All amounts are already in ma.kr. (millions)
+                    // All amounts are already in ma.kr. (millions of ISK)
                     yearTotals[year] += value;
                 }
             });
@@ -616,8 +616,8 @@
             data: {
                 labels: years,
                 datasets: [{
-                    label: 'Samtals (ma.kr.)',
-                    data: years.map(y => yearTotals[y]),
+                    label: 'Samtals (milljard kr.)',
+                    data: years.map(y => yearTotals[y] / 1000),  // Convert ma.kr. to billions
                     backgroundColor: '#0066cc',
                     borderColor: '#0052a3',
                     borderWidth: 1
@@ -636,7 +636,15 @@
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Upphæð (ma.kr.)'
+                            text: 'Upphæð (milljard kr.)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('is-IS', {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                });
+                            }
                         }
                     }
                 }
