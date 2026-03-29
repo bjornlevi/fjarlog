@@ -236,25 +236,6 @@
     <div id="source-info" class="year-selector-group hidden">
         <p id="source-info-text"></p>
     </div>
-
-    <!-- Inflation adjustment controls -->
-    <div class="year-selector-group" id="inflation-controls">
-        <label>Aðlögun fyrir verðbólgu:</label>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-            <input type="checkbox" id="enable-inflation" onchange="toggleInflationAdjustment()">
-            <label for="enable-inflation" style="margin: 0;">Aðlaga fyrir verðbólgu og launahækkunum</label>
-            <select id="inflation-target-year" onchange="applyInflationAdjustment()" disabled>
-                <option value="">Veldu árið sem aðlaga á til</option>
-                {% for year in years %}
-                <option value="{{ year }}">{{ year }} (núverandi verð)</option>
-                {% endfor %}
-            </select>
-        </div>
-        <small style="display: block; margin-top: 0.5rem; color: #666;">
-            Núverandi gerð: 65% verðbólga + 35% launahækkanir.
-            <a href="/about" style="color: #0066cc;">Frekari upplýsingar um aðlögunaraðferð</a>
-        </small>
-    </div>
 </div>
 
 <!-- Chart -->
@@ -388,15 +369,7 @@
         document.getElementById('error').classList.add('hidden');
         document.getElementById('table-body').innerHTML = '';
 
-        // Build API URL with inflation adjustment if enabled
-        let apiUrl = `/api/malefnasvid?year=${year}`;
-        const enableInflation = document.getElementById('enable-inflation').checked;
-        const targetYear = document.getElementById('inflation-target-year').value;
-        if (enableInflation && targetYear) {
-            apiUrl += `&adjust_inflation_to=${targetYear}`;
-        }
-
-        fetch(apiUrl)
+        fetch(`/api/malefnasvid?year=${year}`)
             .then(response => {
                 if (!response.ok) throw new Error('Network error');
                 return response.json();
@@ -582,25 +555,6 @@
                 }
             }
         });
-    }
-
-    function toggleInflationAdjustment() {
-        const enabled = document.getElementById('enable-inflation').checked;
-        const targetSelect = document.getElementById('inflation-target-year');
-        targetSelect.disabled = !enabled;
-
-        if (enabled) {
-            // Set default target year to current selected year if available
-            if (!targetSelect.value && selectedYear) {
-                targetSelect.value = selectedYear;
-            }
-        }
-
-        loadData();
-    }
-
-    function applyInflationAdjustment() {
-        loadData();
     }
 
     // Load default year on page load

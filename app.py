@@ -112,7 +112,7 @@ def calculate_cumulative_inflation(from_year, to_year):
 
     for year in range(from_year, to_year):
         year_str = str(year)
-        inflation_rate = cpi_yearly.get(int(year_str), 0) / 100.0
+        inflation_rate = cpi_yearly.get(year_str, 0) / 100.0
 
         # Apply weighted inflation
         weighted_inflation = inflation_rate * cpi_weight + inflation_rate * wage_weight
@@ -268,7 +268,7 @@ def api_malefnasvid():
 
 @app.route("/api/plan")
 def api_plan():
-    """API endpoint for budget plan (fjármálaáætlun) data."""
+    """API endpoint for budget plan (fjármálaáætlun) data with inflation adjustment."""
     df = load_plan_comparison_data()
     if df is None:
         return jsonify({"error": "Plan data not available"}), 500
@@ -276,6 +276,7 @@ def api_plan():
     # Get filter parameters
     year = request.args.get("year", type=int)
     malefnasvid_nr = request.args.get("malefnasvid_nr")
+    adjust_inflation_to = request.args.get("adjust_inflation_to", type=int)
 
     # Apply filters
     result = df.copy()
@@ -290,8 +291,16 @@ def api_plan():
     # Convert to JSON-serializable format
     result_dict = result.to_dict("records")
     for row in result_dict:
-        if pd.isna(row.get("amount")):
+        amount = row.get("amount")
+        row_year = row.get("year")
+
+        if pd.isna(amount):
             row["amount"] = None
+        elif adjust_inflation_to and row_year and row_year < adjust_inflation_to:
+            # Adjust for inflation to target year
+            row["amount"] = adjust_for_inflation(amount, row_year, adjust_inflation_to)
+            row["inflation_adjusted"] = True
+            row["adjusted_to_year"] = adjust_inflation_to
 
     return jsonify(result_dict)
 
@@ -361,7 +370,8 @@ def fjarmalaaeatlun():
         "fjarmalaaeatlun.html",
         years=years,
         malefnasvid_nrs=malefnasvid_nrs,
-        plan_ranges=plan_ranges
+        plan_ranges=plan_ranges,
+        current_year=2026
     )
 
 

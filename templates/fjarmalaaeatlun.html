@@ -146,11 +146,24 @@
     <p>Skoðaðu væntanlegar fjárlagaúthlutanir samkvæmt fjármálaáætlunum fyrir næstu ár.</p>
 
     <div class="filter-section">
-        <h3>Veldu ár</h3>
-        <div class="year-buttons" id="year-buttons">
-            {% for year in years %}
-            <button class="year-btn" onclick="loadPlanData({{ year }})">{{ year }}</button>
-            {% endfor %}
+        <div style="margin-bottom: 1.5rem;">
+            <h3>Veldu ár</h3>
+            <div class="year-buttons" id="year-buttons">
+                {% for year in years %}
+                <button class="year-btn" onclick="loadPlanData({{ year }})">{{ year }}</button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="enable-inflation" onchange="loadData()">
+                <span>Aðlaga fyrir verðbólgu og launahækkunum (í verðum {{ current_year }})</span>
+            </label>
+            <small style="display: block; margin-top: 0.5rem; color: #666;">
+                Sýnir væntanleg úthlutun í núverandi verðlagi ({{ current_year }}) til þess að bera saman á milli ára.
+                Gerð: 65% verðbólga + 35% launahækkanir.
+            </small>
         </div>
     </div>
 
@@ -186,6 +199,11 @@
         }).format(Math.round(value));
     }
 
+    function loadData() {
+        if (!selectedYear) return;
+        loadPlanData(selectedYear);
+    }
+
     function loadPlanData(year) {
         selectedYear = year;
 
@@ -193,15 +211,25 @@
         document.querySelectorAll('.year-btn').forEach(btn => {
             btn.classList.remove('active');
         });
-        event.target.classList.add('active');
+        if (event && event.target) {
+            event.target.classList.add('active');
+        }
 
         // Show loading
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('error').classList.add('hidden');
         document.getElementById('data-table').classList.add('hidden');
 
+        // Build API URL with inflation adjustment if enabled
+        let apiUrl = `/api/plan?year=${year}`;
+        const enableInflation = document.getElementById('enable-inflation').checked;
+        if (enableInflation) {
+            // Adjust to current year (2026)
+            apiUrl += '&adjust_inflation_to=2026';
+        }
+
         // Fetch data
-        fetch(`/api/plan?year=${year}`)
+        fetch(apiUrl)
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load data');
                 return response.json();
