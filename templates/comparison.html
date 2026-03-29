@@ -210,6 +210,31 @@
     .hidden {
         display: none;
     }
+
+    .inflation-btn-source {
+        padding: 0.5rem 1rem;
+        background: #f5f5f5;
+        color: #333;
+        border: 2px solid #ccc;
+        cursor: pointer;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+        min-width: 140px;
+        font-weight: 500;
+    }
+
+    .inflation-btn-source:hover {
+        border-color: #0066cc;
+        background: #f0f6ff;
+        color: #0066cc;
+    }
+
+    .inflation-btn-source.active {
+        background: #0066cc;
+        color: white;
+        border-color: #0066cc;
+    }
 </style>
 {% endblock %}
 
@@ -238,6 +263,17 @@
     </div>
     <div id="source-info" class="year-selector-group hidden">
         <p id="source-info-text"></p>
+    </div>
+    <div id="inflation-control" class="year-selector-group hidden">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <button id="inflation-toggle-source" class="inflation-btn-source" onclick="toggleInflation()">
+                Án aðlögunar
+            </button>
+            <small style="color: #666; flex: 1;">
+                Sýnir gögn í núverandi verðlagi (2026) til þess að bera saman á milli ára.
+                Gerð: 73% verðbólga + 27% launahækkanir.
+            </small>
+        </div>
     </div>
 </div>
 
@@ -284,6 +320,7 @@
     let currentMode = 'comparison';
     let selectedYear = null;
     let chartInstance = null;
+    let inflationEnabled = false;
 
     // Format number in Icelandic format with . as thousands separator
     function formatNumberIS(n) {
@@ -312,6 +349,14 @@
     function setMode(mode) {
         currentMode = mode;
 
+        // Reset inflation toggle when changing modes
+        inflationEnabled = false;
+        const inflationBtn = document.getElementById('inflation-toggle-source');
+        if (inflationBtn) {
+            inflationBtn.textContent = 'Án aðlögunar';
+            inflationBtn.classList.remove('active');
+        }
+
         // Update buttons
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.classList.remove('active');
@@ -321,15 +366,18 @@
         // Update UI based on mode
         const yearGroup = document.getElementById('year-selector-group');
         const sourceInfo = document.getElementById('source-info');
+        const inflationControl = document.getElementById('inflation-control');
         const chartContainer = document.getElementById('chart-container');
 
         if (mode === 'comparison') {
             yearGroup.classList.remove('hidden');
             sourceInfo.classList.add('hidden');
+            inflationControl.classList.add('hidden');
             chartContainer.classList.add('hidden');
         } else {
             yearGroup.classList.add('hidden');
             sourceInfo.classList.remove('hidden');
+            inflationControl.classList.remove('hidden');
             chartContainer.classList.remove('hidden');
             updateSourceInfo(mode);
         }
@@ -353,6 +401,21 @@
         const sourceText = document.getElementById('source-info-text');
         const years = yearLists[source] || [];
         sourceText.innerHTML = `<strong>${sourceNames[source]}:</strong> Ár með gögnum: ${years.join(', ')}`;
+    }
+
+    function toggleInflation() {
+        inflationEnabled = !inflationEnabled;
+        const btn = document.getElementById('inflation-toggle-source');
+
+        if (inflationEnabled) {
+            btn.textContent = 'Með aðlögun (2026 verð)';
+            btn.classList.add('active');
+        } else {
+            btn.textContent = 'Án aðlögunar';
+            btn.classList.remove('active');
+        }
+
+        loadData();
     }
 
     function loadData() {
@@ -434,7 +497,12 @@
         document.getElementById('error').classList.add('hidden');
         document.getElementById('table-body').innerHTML = '';
 
-        fetch(`/api/malefnasvid?source=${source}`)
+        let apiUrl = `/api/malefnasvid?source=${source}`;
+        if (inflationEnabled) {
+            apiUrl += '&adjust_inflation_to=2026';
+        }
+
+        fetch(apiUrl)
             .then(response => {
                 if (!response.ok) throw new Error('Network error');
                 return response.json();
