@@ -243,18 +243,20 @@
 
     function loadData() {
         if (!selectedYear) return;
-        loadPlanData(selectedYear);
+        loadPlanData(selectedYear, false);
     }
 
-    function loadPlanData(year) {
+    function loadPlanData(year, isYearButtonClick = true) {
         selectedYear = year;
 
-        // Update active button
-        document.querySelectorAll('.year-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        if (event && event.target) {
-            event.target.classList.add('active');
+        // Only update button styling if called from a year button click
+        if (isYearButtonClick) {
+            document.querySelectorAll('.year-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (event && event.target && event.target.classList.contains('year-btn')) {
+                event.target.classList.add('active');
+            }
         }
 
         // Show loading
