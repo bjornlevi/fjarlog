@@ -168,7 +168,7 @@ def extract_malefnasvid_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
         # Read Excel file
         xls = pd.ExcelFile(file_path, engine='openpyxl')
 
-        # Find the málefnasvið sheet (different names for 2021 vs 2022 vs 2023)
+        # Find the málefnasvið sheet (different names for 2020-2023)
         malefnasvid_sheet = None
         for sheet_name in xls.sheet_names:
             sheet_lower = sheet_name.lower()
@@ -178,6 +178,13 @@ def extract_malefnasvid_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
             elif sheet_lower in ["tafla 5", "tafla5"]:  # 2021 sheet name
                 malefnasvid_sheet = sheet_name
                 break
+
+        # Fallback: for 2020 bill file, just "Tafla" sheet contains málefnasvið data
+        if not malefnasvid_sheet and "tafla" in [s.lower() for s in xls.sheet_names]:
+            for sheet_name in xls.sheet_names:
+                if sheet_name.lower() == "tafla":
+                    malefnasvid_sheet = sheet_name
+                    break
 
         if not malefnasvid_sheet:
             logger.debug(f"    Málefnasvið sheet not found in sheets: {xls.sheet_names}")
