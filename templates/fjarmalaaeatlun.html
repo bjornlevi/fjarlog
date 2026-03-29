@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Fjárlagagreining - Fjármálaáætlun{% endblock %}
+
+{% block extra_css %}
+<style>
+    .year-buttons {
+        display: flex;
+        gap: 0.5rem;
+        margin: 1.5rem 0;
+        flex-wrap: wrap;
+    }
+
+    .year-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid #ccc;
+        background: white;
+        color: #333;
+        cursor: pointer;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .year-btn:hover {
+        border-color: #0066cc;
+    }
+
+    .year-btn.active {
+        background: #0066cc;
+        color: white;
+        border-color: #0066cc;
+    }
+
+    .filter-section {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: #f9f9f9;
+        border-radius: 4px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.95rem;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.5rem;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    th {
+        background: #f5f5f5;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid #ddd;
+        color: #333;
+    }
+
+    td {
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+        background: #f9f9f9;
+    }
+
+    .numeric {
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
+
+    .malefnasvid-nr {
+        width: 4rem;
+        font-weight: 600;
+    }
+
+    .malefnasvid-name {
+        width: 30%;
+    }
+
+    .plan-range {
+        background: #e8f4f8;
+        font-size: 0.85rem;
+        color: #333;
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+
+    .error {
+        background: #fee;
+        color: #c33;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+        border-left: 4px solid #c33;
+        display: none;
+    }
+
+    #summary {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: #e8f4f8;
+        border-radius: 4px;
+    }
+
+    #summary.hidden {
+        display: none;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Fjármálaáætlun</h2>
+    <p>Skoðaðu væntanlegar fjárlagaúthlutanir samkvæmt fjármálaáætlunum fyrir næstu ár.</p>
+
+    <div class="filter-section">
+        <h3>Veldu ár</h3>
+        <div class="year-buttons" id="year-buttons">
+            {% for year in years %}
+            <button class="year-btn" onclick="loadPlanData({{ year }})">{{ year }}</button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="loading" class="loading hidden">Hleð gögnum...</div>
+    <div id="error" class="error"></div>
+    <div id="summary" class="hidden">
+        <strong>Niðurstöður:</strong> <span id="result-count">0</span> málefnasvið með gögnum
+    </div>
+
+    <table id="data-table" class="hidden">
+        <thead>
+            <tr>
+                <th class="malefnasvid-nr">#</th>
+                <th class="malefnasvid-name">Málefnasvið</th>
+                <th colspan="100" style="text-align: center;">Væntanleg úthlutun (ma.kr.)</th>
+            </tr>
+            <tr id="plan-headers">
+                <th colspan="2"></th>
+            </tr>
+        </thead>
+        <tbody id="data-tbody"></tbody>
+    </table>
+</div>
+
+<script>
+    let selectedYear = null;
+
+    function formatNumberIS(value) {
+        if (value === null || value === undefined || isNaN(value)) return '—';
+        return new Intl.NumberFormat('is-IS', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(Math.round(value));
+    }
+
+    function loadPlanData(year) {
+        selectedYear = year;
+
+        // Update active button
+        document.querySelectorAll('.year-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Show loading
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('error').classList.add('hidden');
+        document.getElementById('data-table').classList.add('hidden');
+
+        // Fetch data
+        fetch(`/api/plan?year=${year}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load data');
+                return response.json();
+            })
+            .then(data => {
+                displayPlanData(data, year);
+            })
+            .catch(error => {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('error').classList.remove('hidden');
+                document.getElementById('error').textContent = `Villa: ${error.message}`;
+            });
+    }
+
+    function displayPlanData(data, year) {
+        document.getElementById('loading').classList.add('hidden');
+
+        if (!data || data.length === 0) {
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('error').textContent = `Engin gögn fyrir árið ${year}`;
+            return;
+        }
+
+        // Group by malefnasvid_nr to organize by area
+        const byArea = {};
+        const allPlans = new Set();
+
+        data.forEach(row => {
+            const nr = row.malefnasvid_nr;
+            if (!byArea[nr]) {
+                byArea[nr] = {
+                    malefnasvid_nr: nr,
+                    malefnasvid: row.malefnasvid,
+                    forecasts: {}
+                };
+            }
+            byArea[nr].forecasts[row.plan_range] = row.amount;
+            allPlans.add(row.plan_range);
+        });
+
+        // Sort plans
+        const sortedPlans = Array.from(allPlans).sort();
+
+        // Build table headers
+        let headerHtml = '<th colspan="2"></th>';
+        sortedPlans.forEach(plan => {
+            headerHtml += `<th class="numeric" style="background: #e8f4f8;">${plan}</th>`;
+        });
+        document.getElementById('plan-headers').innerHTML = headerHtml;
+
+        // Build table body
+        const tbody = document.getElementById('data-tbody');
+        tbody.innerHTML = '';
+
+        Object.keys(byArea).sort().forEach(nr => {
+            const area = byArea[nr];
+            const tr = document.createElement('tr');
+
+            let html = `
+                <td class="malefnasvid-nr">${area.malefnasvid_nr}</td>
+                <td class="malefnasvid-name">${area.malefnasvid || 'Óþekkt'}</td>
+            `;
+
+            sortedPlans.forEach(plan => {
+                const value = area.forecasts[plan];
+                const displayValue = value !== null && value !== undefined
+                    ? formatNumberIS(value)
+                    : '—';
+                html += `<td class="numeric">${displayValue}</td>`;
+            });
+
+            tr.innerHTML = html;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('summary').classList.remove('hidden');
+        document.getElementById('result-count').textContent = Object.keys(byArea).length;
+        document.getElementById('data-table').classList.remove('hidden');
+    }
+
+    // Load first available year on page load
+    window.addEventListener('load', () => {
+        const firstBtn = document.querySelector('.year-btn');
+        if (firstBtn) firstBtn.click();
+    });
+</script>
+{% endblock %}

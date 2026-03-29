@@ -29,10 +29,12 @@ PROJECT_DIR = Path(__file__).parent
 DATA_DIR = PROJECT_DIR / "data" / "curated"
 COMPARISON_FILE = DATA_DIR / "comparison.parquet"
 MALEFNASVID_COMPARISON_FILE = DATA_DIR / "malefnasvid_comparison.parquet"
+PLAN_COMPARISON_FILE = DATA_DIR / "plan_comparison.parquet"
 
 # Cache for loaded data
 _comparison_df = None
 _malefnasvid_df = None
+_plan_df = None
 
 
 def load_comparison_data():
@@ -55,6 +57,17 @@ def load_malefnasvid_comparison_data():
             return None
         _malefnasvid_df = pd.read_parquet(MALEFNASVID_COMPARISON_FILE)
     return _malefnasvid_df
+
+
+def load_plan_comparison_data():
+    """Load plan comparison data from parquet file."""
+    global _plan_df
+    if _plan_df is None:
+        if not PLAN_COMPARISON_FILE.exists():
+            logger.error(f"Plan comparison file not found: {PLAN_COMPARISON_FILE}")
+            return None
+        _plan_df = pd.read_parquet(PLAN_COMPARISON_FILE)
+    return _plan_df
 
 
 @app.route("/")
@@ -174,6 +187,36 @@ def api_malefnasvid():
     return jsonify(result_dict)
 
 
+@app.route("/api/plan")
+def api_plan():
+    """API endpoint for budget plan (fjármálaáætlun) data."""
+    df = load_plan_comparison_data()
+    if df is None:
+        return jsonify({"error": "Plan data not available"}), 500
+
+    # Get filter parameters
+    year = request.args.get("year", type=int)
+    malefnasvid_nr = request.args.get("malefnasvid_nr")
+
+    # Apply filters
+    result = df.copy()
+    if year:
+        result = result[result["year"] == year]
+    if malefnasvid_nr:
+        result = result[result["malefnasvid_nr"] == malefnasvid_nr]
+
+    # Sort by year and plan_range for consistent display
+    result = result.sort_values(["year", "malefnasvid_nr", "plan_range"])
+
+    # Convert to JSON-serializable format
+    result_dict = result.to_dict("records")
+    for row in result_dict:
+        if pd.isna(row.get("amount")):
+            row["amount"] = None
+
+    return jsonify(result_dict)
+
+
 @app.route("/comparison")
 def comparison():
     """Comparison page with malefnasvið side-by-side comparison."""
@@ -220,6 +263,26 @@ def budget_lines():
         years=years,
         selected_year=selected_year,
         budget_lines=budget_lines,
+    )
+
+
+@app.route("/fjarmalaaeatlun")
+def fjarmalaaeatlun():
+    """Budget plan (fjármálaáætlun) page."""
+    df = load_plan_comparison_data()
+    if df is None:
+        return render_template("error.html", message="Plan data not available. Please run the pipeline first."), 500
+
+    # Get years and policy areas that have data
+    years = sorted(df["year"].unique().tolist())
+    malefnasvid_nrs = sorted(df["malefnasvid_nr"].unique().tolist())
+    plan_ranges = sorted(df["plan_range"].unique().tolist())
+
+    return render_template(
+        "fjarmalaaeatlun.html",
+        years=years,
+        malefnasvid_nrs=malefnasvid_nrs,
+        plan_ranges=plan_ranges
     )
 
 
