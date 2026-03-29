@@ -31,12 +31,12 @@ OUTPUT_FILE = CURATED_DIR / "malefnasvid_comparison.parquet"
 def load_all_sources():
     """Load and prepare data from all three sources."""
 
-    # Load bills - using malefnasvid version when available (2022-2026)
+    # Load bills - using malefnasvid version when available (2021-2026)
     bills_data = []
     bills_dir = PROCESSED_DIR / "budget_bills"
 
-    # Try malefnasvid files first (2022-2026), fall back to regular files
-    for year in range(2022, 2027):
+    # Try malefnasvid files first (2021-2026), fall back to regular files
+    for year in range(2021, 2027):
         # Try malefnasvid file first
         malefnasvid_file = bills_dir / f"bill_{year}_malefnasvid.parquet"
         regular_file = bills_dir / f"bill_{year}.parquet"

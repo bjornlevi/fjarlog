@@ -140,8 +140,9 @@ def extract_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
 
 def extract_malefnasvid_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
     """
-    Extract málefnasvið (policy areas) data from 2022-2023 XLSX budget bill files.
+    Extract málefnasvið (policy areas) data from 2021-2023 XLSX budget bill files.
 
+    2021 format: Sheet "Tafla 5" or "Tafla5" with policy areas
     2022 format: Sheet "5_3-1" with policy areas
     2023 format: Sheet "5_1-5" with policy areas
 
@@ -167,10 +168,14 @@ def extract_malefnasvid_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
         # Read Excel file
         xls = pd.ExcelFile(file_path, engine='openpyxl')
 
-        # Find the málefnasvið sheet (different names for 2022 vs 2023)
+        # Find the málefnasvið sheet (different names for 2021 vs 2022 vs 2023)
         malefnasvid_sheet = None
         for sheet_name in xls.sheet_names:
+            sheet_lower = sheet_name.lower()
             if sheet_name in ["5_3-1", "5_1-5"]:  # 2022 and 2023 sheet names
+                malefnasvid_sheet = sheet_name
+                break
+            elif sheet_lower in ["tafla 5", "tafla5"]:  # 2021 sheet name
                 malefnasvid_sheet = sheet_name
                 break
 
@@ -185,9 +190,20 @@ def extract_malefnasvid_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
 
         result_rows = []
 
+        # Find the bill amount column by looking for "Frumvarp" in header row (row 2, 0-indexed)
+        amount_col = 2  # default fallback
+        if len(df) > 2:
+            header_row = df.iloc[2]
+            for col_idx, col_val in enumerate(header_row):
+                col_str = str(col_val).strip() if pd.notna(col_val) else ""
+                if f"Frumvarp" in col_str or f"{year}" in col_str:
+                    amount_col = col_idx
+                    logger.debug(f"    Found bill amount column at index {col_idx}")
+                    break
+
         # Policy areas are in rows 3-37 (0-indexed)
         # Column 0 has the policy area (e.g., "01 Alþingi og eftirlitsstofnanir þess")
-        # Column 2 has the bill amount (Frumvarp for the year)
+        # The bill amount column is determined above
         for idx in range(3, min(38, len(df))):
             row = df.iloc[idx]
             policy_area_str = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else None
@@ -203,9 +219,9 @@ def extract_malefnasvid_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
             malefnasvid_nr = code_match.group(1)
             malefnasvid = policy_area_str
 
-            # Column 2 (index 2) has the bill amount
-            if len(row) > 2:
-                val = row.iloc[2]
+            # Get the bill amount from the determined column
+            if len(row) > amount_col:
+                val = row.iloc[amount_col]
 
                 if pd.notna(val):
                     try:
