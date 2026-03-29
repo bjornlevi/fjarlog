@@ -6,9 +6,9 @@
   },
   "methodology": {
     "cpi_wage_split": {
-      "wages": 0.35,
-      "cpi": 0.65,
-      "notes": "Assumption: ~35% of government budget is wages, ~65% is other costs affected by CPI"
+      "wages": 0.46,
+      "cpi": 0.54,
+      "notes": "Based on actual government budget composition (Ríkisreikningur 2023): wages (Launagjöld - TegundL2 51) = 45.8%, non-wage expenses (goods, services, asset purchases, etc.) = 54.2%. Source: Analysis of Ríkisreikningur_gogn_2023.csv"
     }
   },
   "cpi": {
