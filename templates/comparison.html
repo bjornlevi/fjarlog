@@ -616,7 +616,7 @@
             data: {
                 labels: years,
                 datasets: [{
-                    label: 'Samtals (milljard kr.)',
+                    label: 'Samtals (milljarðar kr.)',
                     data: years.map(y => yearTotals[y] / 1000),  // Convert ma.kr. to billions
                     backgroundColor: '#0066cc',
                     borderColor: '#0052a3',
@@ -636,7 +636,7 @@
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Upphæð (milljard kr.)'
+                            text: 'Upphæð (milljarðar kr.)'
                         },
                         ticks: {
                             callback: function(value) {
