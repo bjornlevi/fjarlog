@@ -195,6 +195,13 @@ def extract_malefnasvid_from_xlsx(file_path: Path) -> Optional[pd.DataFrame]:
                 tafla5_sheet = sheet_name
                 break
 
+        # Fallback: for 2020 plan file, just "Tafla" sheet contains málefnasvið data
+        if not tafla5_sheet and "tafla" in [s.lower() for s in xls.sheet_names]:
+            for sheet_name in xls.sheet_names:
+                if sheet_name.lower() == "tafla":
+                    tafla5_sheet = sheet_name
+                    break
+
         if not tafla5_sheet:
             logger.debug(f"    Tafla 5 / Table 5 not found in sheets: {xls.sheet_names}")
             return None
