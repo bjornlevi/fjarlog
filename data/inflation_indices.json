@@ -8,7 +8,7 @@
     "cpi_wage_split": {
       "wages": 0.27,
       "cpi": 0.73,
-      "notes": "Based on official government budget accounts (Ríkisreikningur 2024 PDF): wages (Laun og launatengd gjöld) = 386.602 thousand ISK, total expenses excluding capital items = 1,428.180 thousand ISK. Wage share = 27.1%, non-wage (price/CPI) share = 72.9%."
+      "notes": "Based on official government budget accounts (Ríkisreikningur). Validated across multiple years: 2019 (28.4% wages), 2024 (27.1% wages). Average ~27-28% wages, 72-73% price/CPI. Source: Ríkisreikningur 2019 (Page 20: 229.708k/809.238k) and Ríkisreikningur 2024 (386.602k/1,428.180k)."
     }
   },
   "cpi": {
