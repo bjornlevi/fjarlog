@@ -156,15 +156,41 @@
         </div>
 
         <div>
-            <label style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" id="enable-inflation" onchange="loadData()">
-                <span>Aðlaga fyrir verðbólgu og launahækkunum (í verðum {{ current_year }})</span>
-            </label>
-            <small style="display: block; margin-top: 0.5rem; color: #666;">
-                Sýnir væntanleg úthlutun í núverandi verðlagi ({{ current_year }}) til þess að bera saman á milli ára.
-                Gerð: 65% verðbólga + 35% launahækkanir.
-            </small>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button id="inflation-toggle" class="inflation-btn" onclick="toggleInflation()">
+                    Án aðlögunar
+                </button>
+                <small style="color: #666; flex: 1;">
+                    Sýnir væntanleg úthlutun í núverandi verðlagi ({{ current_year }}) til þess að bera saman á milli ára.
+                    Gerð: 65% verðbólga + 35% launahækkanir.
+                </small>
+            </div>
         </div>
+
+        <style>
+            .inflation-btn {
+                padding: 0.5rem 1rem;
+                background: #f5f5f5;
+                color: #333;
+                border: 2px solid #ccc;
+                cursor: pointer;
+                font-size: 0.9rem;
+                border-radius: 4px;
+                transition: all 0.2s;
+                min-width: 140px;
+                font-weight: 500;
+            }
+
+            .inflation-btn.active {
+                background: #0066cc;
+                color: white;
+                border-color: #0066cc;
+            }
+
+            .inflation-btn:hover {
+                border-color: #0066cc;
+            }
+        </style>
     </div>
 
     <div id="loading" class="loading hidden">Hleð gögnum...</div>
@@ -190,6 +216,22 @@
 
 <script>
     let selectedYear = null;
+    let inflationEnabled = false;
+
+    function toggleInflation() {
+        inflationEnabled = !inflationEnabled;
+        const btn = document.getElementById('inflation-toggle');
+
+        if (inflationEnabled) {
+            btn.textContent = 'Með aðlögun (2026 verð)';
+            btn.classList.add('active');
+        } else {
+            btn.textContent = 'Án aðlögunar';
+            btn.classList.remove('active');
+        }
+
+        loadData();
+    }
 
     function formatNumberIS(value) {
         if (value === null || value === undefined || isNaN(value)) return '—';
@@ -222,8 +264,7 @@
 
         // Build API URL with inflation adjustment if enabled
         let apiUrl = `/api/plan?year=${year}`;
-        const enableInflation = document.getElementById('enable-inflation').checked;
-        if (enableInflation) {
+        if (inflationEnabled) {
             // Adjust to current year (2026)
             apiUrl += '&adjust_inflation_to=2026';
         }
