@@ -292,15 +292,30 @@ def api_plan():
     result_dict = result.to_dict("records")
     for row in result_dict:
         amount = row.get("amount")
-        row_year = row.get("year")
+        document_id = row.get("document_id", "")
 
         if pd.isna(amount):
             row["amount"] = None
-        elif adjust_inflation_to and row_year and row_year < adjust_inflation_to:
-            # Adjust for inflation to target year
-            row["amount"] = adjust_for_inflation(amount, row_year, adjust_inflation_to)
-            row["inflation_adjusted"] = True
-            row["adjusted_to_year"] = adjust_inflation_to
+        elif adjust_inflation_to:
+            # For plan data, extract the plan creation year from document_id (e.g., "plan_2022_2026" -> 2022)
+            # This is important because a 2026 forecast made in 2022 should be adjusted FROM 2022 TO adjust_inflation_to
+            plan_creation_year = None
+            if document_id and document_id.startswith("plan_"):
+                try:
+                    parts = document_id.split("_")
+                    if len(parts) >= 2:
+                        plan_creation_year = int(parts[1])
+                except (ValueError, IndexError):
+                    pass
+
+            # Use plan creation year if available, otherwise use fiscal year
+            base_year = plan_creation_year if plan_creation_year else row.get("year")
+
+            if base_year and base_year < adjust_inflation_to:
+                # Adjust for inflation to target year
+                row["amount"] = adjust_for_inflation(amount, base_year, adjust_inflation_to)
+                row["inflation_adjusted"] = True
+                row["adjusted_to_year"] = adjust_inflation_to
 
     return jsonify(result_dict)
 
