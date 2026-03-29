@@ -12,6 +12,7 @@ import json
 import requests
 from pathlib import Path
 from datetime import datetime
+import time
 
 # Setup logging
 logging.basicConfig(
@@ -42,10 +43,29 @@ def fetch_cpi_data():
 
     cpi_data = {}
 
-    # Fetch data for years 2015-2026
+    # Load existing data to avoid re-fetching
+    if INFLATION_FILE.exists():
+        try:
+            with open(INFLATION_FILE, 'r', encoding='utf-8') as f:
+                existing_data = json.load(f)
+                cpi_data = existing_data.get("cpi", {}).get("monthly", {})
+                logger.info(f"Loaded {len(cpi_data)} existing CPI data points")
+        except Exception as e:
+            logger.warning(f"Could not load existing data: {e}")
+
+    # Fetch data for years 2015-2026, with delay between requests to avoid rate limiting
+    request_delay = 0.5  # seconds between requests
+    request_count = 0
+    max_requests_per_minute = 60  # Rate limit: ~60 requests per minute
+
     for year in range(2015, 2027):
         for month in range(1, 13):
             month_str = f"{year}M{month:02d}"
+
+            # Skip if we already have this data point
+            if month_str in cpi_data:
+                logger.debug(f"  {month_str}: already have data ({cpi_data[month_str]}%)")
+                continue
 
             payload = {
                 "query": [
@@ -77,7 +97,15 @@ def fetch_cpi_data():
             }
 
             try:
+                # Add delay to respect rate limiting
+                if request_count > 0 and request_count % max_requests_per_minute == 0:
+                    logger.info(f"Rate limit check: pausing for {request_delay * 30}s after {request_count} requests...")
+                    time.sleep(request_delay * 30)
+                else:
+                    time.sleep(request_delay)
+
                 response = requests.post(CPI_API, json=payload, timeout=10)
+                request_count += 1
                 response.raise_for_status()
                 data = response.json()
 
@@ -87,11 +115,19 @@ def fetch_cpi_data():
                     if value is not None:
                         cpi_data[month_str] = float(value)
                         logger.debug(f"  {month_str}: {value}%")
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 429:
+                    logger.warning(f"  Rate limited (429) at {month_str}. Waiting 60s before retry...")
+                    time.sleep(60)
+                    continue
+                else:
+                    logger.warning(f"  Failed to fetch {month_str}: {e}")
+                    continue
             except requests.RequestException as e:
                 logger.warning(f"  Failed to fetch {month_str}: {e}")
                 continue
 
-    logger.info(f"Fetched {len(cpi_data)} CPI data points")
+    logger.info(f"Fetched {len(cpi_data)} total CPI data points (new + existing)")
     return cpi_data
 
 
