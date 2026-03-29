@@ -304,6 +304,7 @@
             </tr>
         </tbody>
     </table>
+    <div id="table-footnote" style="font-size: 0.85rem; color: #666; padding: 0.5rem 1rem; margin-top: 0.5rem;"></div>
 </div>
 
 <!-- Summary -->
@@ -530,11 +531,26 @@
                 const headers = [
                     { text: '#', class: 'malefnasvid-nr' },
                     { text: 'Málefnasvið', class: 'malefnasvid-name' },
-                    ...years.map(y => ({ text: String(y), class: 'numeric' }))
+                    ...years.map(y => {
+                        let text = String(y);
+                        // Add asterisk for 2025 in accounts mode (half-year data)
+                        if (y === 2025 && source === 'accounts') {
+                            text += '*';
+                        }
+                        return { text: text, class: 'numeric' };
+                    })
                 ];
 
                 const headerRow = document.getElementById('table-header');
                 headerRow.innerHTML = headers.map(h => `<th class="${h.class}">${h.text}</th>`).join('');
+
+                // Add footnote for asterisk if showing accounts data
+                const footnoteDiv = document.getElementById('table-footnote');
+                if (source === 'accounts') {
+                    footnoteDiv.innerHTML = '* 2025 gögn eru aðeins fyrir fyrri hluta ársins';
+                } else {
+                    footnoteDiv.innerHTML = '';
+                }
 
                 // Build table body
                 const tbody = document.getElementById('table-body');
