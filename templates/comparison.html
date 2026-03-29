@@ -403,8 +403,8 @@
 
                     const plannedMA = row.amount_planned ? Math.round(row.amount_planned) : null;
                     const billedMA = row.amount_billed ? Math.round(row.amount_billed) : null;
-                    // Convert accounts from ISK to ma.kr. (divide by 1,000,000)
-                    const actualMA = row.amount_actual ? Math.round(row.amount_actual / 1000000) : null;
+                    // All amounts are already in ma.kr. (millions)
+                    const actualMA = row.amount_actual ? Math.round(row.amount_actual) : null;
 
                     tr.innerHTML = `
                         <td class="malefnasvid-nr">${row.malefnasvid_nr}</td>
@@ -478,10 +478,10 @@
 
                     years.forEach(year => {
                         const value = row[String(year)];
-                        // Convert ISK to ma.kr. for accounts data (if > 1000000)
+                        // All amounts are already in ma.kr. (millions)
                         let displayValue = '—';
                         if (value !== null && value !== undefined) {
-                            const numValue = value > 1000000 ? Math.round(value / 1000000) : Math.round(value);
+                            const numValue = Math.round(value);
                             displayValue = formatNumberIS(numValue);
                         }
                         cells += `<td class="numeric">${displayValue}</td>`;
@@ -512,8 +512,8 @@
             data.forEach(row => {
                 const value = row[String(year)];
                 if (value !== null && value !== undefined) {
-                    // Convert ISK to ma.kr. if needed
-                    yearTotals[year] += value > 1000000 ? value / 1000000 : value;
+                    // All amounts are already in ma.kr. (millions)
+                    yearTotals[year] += value;
                 }
             });
         });
