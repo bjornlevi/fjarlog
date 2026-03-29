@@ -222,6 +222,8 @@
         inflationEnabled = !inflationEnabled;
         const btn = document.getElementById('inflation-toggle');
 
+        console.log('Inflation toggled:', inflationEnabled);
+
         if (inflationEnabled) {
             btn.textContent = 'Með aðlögun (2026 verð)';
             btn.classList.add('active');
@@ -271,6 +273,8 @@
             apiUrl += '&adjust_inflation_to=2026';
         }
 
+        console.log('Fetching API:', apiUrl);
+
         // Fetch data
         fetch(apiUrl)
             .then(response => {
@@ -278,6 +282,7 @@
                 return response.json();
             })
             .then(data => {
+                console.log('API response received, first row:', data[0]);
                 displayPlanData(data, year);
             })
             .catch(error => {
