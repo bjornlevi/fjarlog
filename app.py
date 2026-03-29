@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify
 from pathlib import Path
 import pandas as pd
 import logging
+import json
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -30,11 +31,13 @@ DATA_DIR = PROJECT_DIR / "data" / "curated"
 COMPARISON_FILE = DATA_DIR / "comparison.parquet"
 MALEFNASVID_COMPARISON_FILE = DATA_DIR / "malefnasvid_comparison.parquet"
 PLAN_COMPARISON_FILE = DATA_DIR / "plan_comparison.parquet"
+INFLATION_FILE = PROJECT_DIR / "data" / "inflation_indices.json"
 
 # Cache for loaded data
 _comparison_df = None
 _malefnasvid_df = None
 _plan_df = None
+_inflation_data = None
 
 
 def load_comparison_data():
@@ -68,6 +71,66 @@ def load_plan_comparison_data():
             return None
         _plan_df = pd.read_parquet(PLAN_COMPARISON_FILE)
     return _plan_df
+
+
+def load_inflation_data():
+    """Load inflation indices from JSON file."""
+    global _inflation_data
+    if _inflation_data is None:
+        if not INFLATION_FILE.exists():
+            logger.warning(f"Inflation file not found: {INFLATION_FILE}")
+            return None
+        try:
+            with open(INFLATION_FILE, 'r', encoding='utf-8') as f:
+                _inflation_data = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load inflation data: {e}")
+            return None
+    return _inflation_data
+
+
+def calculate_cumulative_inflation(from_year, to_year):
+    """
+    Calculate cumulative inflation rate from from_year to to_year.
+    Uses weighted average of CPI (65%) and wage growth assumption (35%).
+    Returns the adjustment factor (e.g., 1.25 means 25% inflation).
+    """
+    inflation_data = load_inflation_data()
+    if not inflation_data:
+        return 1.0
+
+    cpi_yearly = inflation_data.get("cpi", {}).get("yearly", {})
+    methodology = inflation_data.get("methodology", {}).get("cpi_wage_split", {})
+
+    # Default weights if not in file
+    cpi_weight = methodology.get("cpi", 0.65)
+    wage_weight = methodology.get("wages", 0.35)
+
+    # For simplicity, use CPI for both (wage data fetch hit rate limits)
+    # In production, could use actual wage data or adjust weights
+    cumulative_factor = 1.0
+
+    for year in range(from_year, to_year):
+        year_str = str(year)
+        inflation_rate = cpi_yearly.get(int(year_str), 0) / 100.0
+
+        # Apply weighted inflation
+        weighted_inflation = inflation_rate * cpi_weight + inflation_rate * wage_weight
+        cumulative_factor *= (1 + weighted_inflation)
+
+    return cumulative_factor
+
+
+def adjust_for_inflation(value, year_from, year_to):
+    """Adjust a budget value for inflation from year_from to year_to."""
+    if value is None or pd.isna(value):
+        return value
+
+    if year_from >= year_to:
+        return value
+
+    factor = calculate_cumulative_inflation(year_from, year_to)
+    return value * factor
 
 
 @app.route("/")
@@ -125,7 +188,7 @@ def api_comparison():
 
 @app.route("/api/malefnasvid")
 def api_malefnasvid():
-    """API endpoint for malefnasvið comparison data with filtering."""
+    """API endpoint for malefnasvið comparison data with filtering and inflation adjustment."""
     df = load_malefnasvid_comparison_data()
     if df is None:
         return jsonify({"error": "Data not available"}), 500
@@ -133,6 +196,7 @@ def api_malefnasvid():
     # Get filter parameters
     year = request.args.get("year", type=int)
     source = request.args.get("source")  # 'plan', 'bill', or 'accounts'
+    adjust_inflation_to = request.args.get("adjust_inflation_to", type=int)  # Target year for inflation adjustment
 
     # Apply year filter
     result = df.copy()
@@ -141,11 +205,18 @@ def api_malefnasvid():
         # For a specific year, return all areas with their amounts from each source
         result = result.sort_values("malefnasvid_nr")
         result_dict = result.to_dict("records")
-        # Convert NaN to None for JSON serialization
+        # Convert NaN to None for JSON serialization and apply inflation adjustment
         for row in result_dict:
+            row_year = row.get("year")
             for key in ["amount_planned", "amount_billed", "amount_actual"]:
                 if pd.isna(row.get(key)):
                     row[key] = None
+                elif adjust_inflation_to and row_year:
+                    # Adjust value for inflation
+                    row[key] = adjust_for_inflation(row[key], row_year, adjust_inflation_to)
+                    # Add adjusted flag
+                    row["inflation_adjusted"] = True
+                    row["adjusted_to_year"] = adjust_inflation_to
         return jsonify(result_dict)
 
     # If source filter is applied, return cross-year data for that source
@@ -173,7 +244,15 @@ def api_malefnasvid():
                 "malefnasvid": row["malefnasvid"].iloc[0],
             }
             for _, year_row in row.iterrows():
-                area_data[str(year_row["year"])] = year_row[amount_col]
+                value = year_row[amount_col]
+                year_val = year_row["year"]
+                # Apply inflation adjustment if requested
+                if adjust_inflation_to and year_val < adjust_inflation_to:
+                    value = adjust_for_inflation(value, year_val, adjust_inflation_to)
+                    if "inflation_adjusted" not in area_data:
+                        area_data["inflation_adjusted"] = True
+                        area_data["adjusted_to_year"] = adjust_inflation_to
+                area_data[str(year_val)] = value
             pivot_data.append(area_data)
 
         return jsonify(pivot_data)

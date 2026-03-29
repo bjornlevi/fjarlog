@@ -70,6 +70,10 @@ scrape-accounts:
 	@echo "Please manually add account URLs to data_sources.json if needed."
 	@echo "Skipping automated scraping for budget accounts."
 
+fetch-inflation:
+	@echo "Fetching inflation indices from Hagstofa Íslands..."
+	$(PYTHON) $(SCRIPTS_DIR)/fetch_inflation_data.py
+
 download:
 	@echo "Downloading documents to landing zone..."
 	$(PYTHON) $(SCRIPTS_DIR)/download_sources.py
