@@ -94,6 +94,7 @@ curate:
 	@echo "Building comparison parquets..."
 	$(PYTHON) $(SCRIPTS_DIR)/build_comparison.py
 	$(PYTHON) $(SCRIPTS_DIR)/build_malefnasvid_comparison.py
+	$(PYTHON) $(SCRIPTS_DIR)/build_plan_comparison.py
 
 web:
 	@echo "Starting Flask web server..."
