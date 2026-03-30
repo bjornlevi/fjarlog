@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+
+{% block title %}Fjárlagagreining - {{ area_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .area-header {
+        margin: 1.5rem 0;
+    }
+
+    .area-title {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .area-title h2 {
+        margin: 0;
+        color: #1a3a3a;
+        border-bottom: 2px solid #ffd700;
+        padding-bottom: 0.5rem;
+    }
+
+    .area-code-badge {
+        display: inline-block;
+        background: #0066cc;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 1rem;
+        color: #0066cc;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .year-selector {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: #f9f9f9;
+        border-radius: 4px;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .year-selector label {
+        font-weight: 500;
+        margin: 0;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .year-button {
+        padding: 0.5rem 1rem;
+        border: 2px solid #ccc;
+        background: white;
+        color: #333;
+        cursor: pointer;
+        font-size: 0.95rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .year-button:hover {
+        border-color: #0066cc;
+        background: #f0f6ff;
+        color: #0066cc;
+    }
+
+    .year-button.active {
+        background: #0066cc;
+        color: white;
+        border-color: #0066cc;
+    }
+
+    .institutions-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .institutions-table thead {
+        background: #2d5555;
+        border-bottom: 2px solid #ddd;
+    }
+
+    .institutions-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: white;
+    }
+
+    .institutions-table td {
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .institutions-table tbody tr:hover {
+        background: #fafafa;
+    }
+
+    .institutions-table tbody tr:last-child td {
+        border-bottom: 2px solid #ddd;
+    }
+
+    .institution-code {
+        font-family: monospace;
+        font-weight: bold;
+        color: #0066cc;
+    }
+
+    .institution-name {
+        font-weight: 500;
+    }
+
+    .amount {
+        text-align: right;
+        font-family: 'Courier New', monospace;
+        color: #333;
+    }
+
+    .no-data {
+        padding: 2rem;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 4px;
+        color: #856404;
+    }
+
+    .total-row {
+        font-weight: 600;
+        background: #e8f0ff;
+        border-top: 2px solid #0066cc;
+    }
+
+    .total-row .amount {
+        color: #0066cc;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="/comparison" class="back-link">← Til baka á samanburðinn</a>
+
+    <div class="area-header">
+        <div class="area-title">
+            <span class="area-code-badge">{{ area_code }}</span>
+            <h2>{{ area_name }}</h2>
+        </div>
+    </div>
+
+    <div class="year-selector">
+        <label>Ár:</label>
+        <div id="year-buttons" class="button-group"></div>
+    </div>
+
+    <div id="institutions-container">
+        <p class="no-data">Engin gögn til fyrir valið ár.</p>
+    </div>
+</div>
+
+<script>
+    const areaCode = '{{ area_code }}';
+    let availableYears = [];
+    let selectedYear = null;
+
+    async function loadYears() {
+        try {
+            availableYears = [];
+
+            // First fetch all data to get all available years
+            const allResponse = await fetch(`/api/malefnasvid/${areaCode}/institutions`);
+
+            if (allResponse.ok) {
+                const allData = await allResponse.json();
+                const yearsSet = new Set();
+
+                allData.forEach(row => {
+                    if (row.year) {
+                        yearsSet.add(row.year);
+                    }
+                });
+
+                availableYears = Array.from(yearsSet).sort((a, b) => b - a);
+            }
+
+            // Create year buttons
+            const buttonsContainer = document.getElementById('year-buttons');
+            buttonsContainer.innerHTML = '';
+
+            if (availableYears.length === 0) {
+                buttonsContainer.innerHTML = '<p class="no-data">Engin ár með gögnum tiltæk.</p>';
+                document.getElementById('institutions-container').innerHTML = '<p class="no-data">Engin gögn til fyrir valið ár.</p>';
+                return;
+            }
+
+            availableYears.forEach(year => {
+                const button = document.createElement('button');
+                button.textContent = year;
+                button.className = 'year-button';
+                button.onclick = () => selectYear(year);
+                buttonsContainer.appendChild(button);
+            });
+
+            if (availableYears.length > 0) {
+                selectYear(availableYears[0]);
+            }
+        } catch (error) {
+            console.error('Error loading years:', error);
+        }
+    }
+
+    function selectYear(year) {
+        selectedYear = year;
+
+        // Update button states
+        document.querySelectorAll('.year-button').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent === year.toString());
+        });
+
+        loadInstitutionData(year);
+    }
+
+    async function loadInstitutionData(year) {
+        const container = document.getElementById('institutions-container');
+
+        if (!year) {
+            container.innerHTML = '<p class="no-data">Veldu ár til að skoða stofnunagögn.</p>';
+            return;
+        }
+
+        try {
+            const url = `/api/malefnasvid/${areaCode}/institutions?year=${year}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                container.innerHTML = '<p class="no-data">Engin gögn til fyrir valið ár.</p>';
+                return;
+            }
+
+            const data = await response.json();
+            if (data.length === 0) {
+                container.innerHTML = '<p class="no-data">Engin gögn til fyrir valið ár.</p>';
+                return;
+            }
+
+            // Filter to only institution records (those with institution_code)
+            const institutions = data.filter(row => row.institution_code);
+            const total = institutions.reduce((sum, row) => sum + (row.heildarfjarhemild || 0), 0);
+
+            if (institutions.length === 0) {
+                container.innerHTML = '<p class="no-data">Engin gögn til fyrir valið ár.</p>';
+                return;
+            }
+
+            let html = `
+                <table class="institutions-table">
+                    <thead>
+                        <tr>
+                            <th>Stofnun</th>
+                            <th>Heiti</th>
+                            <th class="amount">Heildarfjárheimild (ma.kr.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            institutions.forEach(row => {
+                const amount = row.heildarfjarhemild || 0;
+                html += `
+                    <tr>
+                        <td class="institution-code">${row.institution_code}</td>
+                        <td class="institution-name">${row.institution_name}</td>
+                        <td class="amount">${amount.toFixed(1)}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        <tr class="total-row">
+                            <td colspan="2">Samtals fyrir ${areaCode}</td>
+                            <td class="amount">${total.toFixed(1)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('Error loading institution data:', error);
+            container.innerHTML = '<p class="no-data">Villa við að sækja gögn.</p>';
+        }
+    }
+
+    // Load years on page load
+    loadYears();
+</script>
+{% endblock %}

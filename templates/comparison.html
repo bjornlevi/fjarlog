@@ -141,6 +141,18 @@
         width: 45%;
     }
 
+    .area-link {
+        color: #0066cc;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .area-link:hover {
+        color: #0052a3;
+        text-decoration: underline;
+    }
+
     .missing-value {
         color: #999;
     }
@@ -248,6 +260,7 @@
     <button class="mode-btn active" onclick="setMode('comparison')">Samanburður</button>
     <button class="mode-btn" onclick="setMode('plan')">Fjármálaáætlun</button>
     <button class="mode-btn" onclick="setMode('bill')">Fjárlög</button>
+    <button class="mode-btn" onclick="setMode('bill_approved')">Samþykkt fjárlög</button>
     <button class="mode-btn" onclick="setMode('accounts')">Ríkisreikningur</button>
 </div>
 
@@ -298,7 +311,7 @@
         </thead>
         <tbody id="table-body">
             <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem;">
+                <td colspan="7" style="text-align: center; padding: 2rem;">
                     Veldu ár til að hlaða gögnum.
                 </td>
             </tr>
@@ -390,12 +403,14 @@
         const sourceNames = {
             'plan': 'Fjármálaáætlun',
             'bill': 'Fjárlög',
+            'bill_approved': 'Samþykkt fjárlög',
             'accounts': 'Ríkisreikningur'
         };
 
         const yearLists = {
             'plan': {{ years_with_plans | tojson }},
             'bill': {{ years_with_bills | tojson }},
+            'bill_approved': {{ years_with_bills_approved | tojson }},
             'accounts': {{ years_with_accounts | tojson }}
         };
 
@@ -450,6 +465,7 @@
                     { text: 'Málefnasvið', class: 'malefnasvid-name' },
                     { text: 'Fjármálaáætlun (ma.kr.)', class: 'numeric' },
                     { text: 'Fjárlög (ma.kr.)', class: 'numeric' },
+                    { text: 'Samþykkt fjárlög (ma.kr.)', class: 'numeric' },
                     { text: 'Ríkisreikningur (ma.kr.)', class: 'numeric' }
                 ];
 
@@ -470,14 +486,16 @@
 
                     const plannedMA = row.amount_planned ? Math.round(row.amount_planned) : null;
                     const billedMA = row.amount_billed ? Math.round(row.amount_billed) : null;
+                    const approvedMA = row.amount_approved ? Math.round(row.amount_approved) : null;
                     // All amounts are already in ma.kr. (millions)
                     const actualMA = row.amount_actual ? Math.round(row.amount_actual) : null;
 
                     tr.innerHTML = `
-                        <td class="malefnasvid-nr">${row.malefnasvid_nr}</td>
-                        <td class="malefnasvid-name">${row.malefnasvid || 'Óþekkt'}</td>
+                        <td class="malefnasvid-nr"><a href="/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid_nr}</a></td>
+                        <td class="malefnasvid-name"><a href="/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid || 'Óþekkt'}</a></td>
                         <td class="numeric">${plannedMA !== null ? formatNumberIS(plannedMA) : '—'}</td>
                         <td class="numeric">${billedMA !== null ? formatNumberIS(billedMA) : '—'}</td>
+                        <td class="numeric">${approvedMA !== null ? formatNumberIS(approvedMA) : '—'}</td>
                         <td class="numeric">${actualMA !== null ? formatNumberIS(actualMA) : '—'}</td>
                     `;
                     tbody.appendChild(tr);
@@ -559,8 +577,8 @@
                 data.forEach(row => {
                     const tr = document.createElement('tr');
                     let cells = `
-                        <td class="malefnasvid-nr">${row.malefnasvid_nr}</td>
-                        <td class="malefnasvid-name">${row.malefnasvid || 'Óþekkt'}</td>
+                        <td class="malefnasvid-nr"><a href="/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid_nr}</a></td>
+                        <td class="malefnasvid-name"><a href="/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid || 'Óþekkt'}</a></td>
                     `;
 
                     years.forEach(year => {

@@ -208,7 +208,7 @@ def api_malefnasvid():
         # Convert NaN to None for JSON serialization and apply inflation adjustment
         for row in result_dict:
             row_year = row.get("year")
-            for key in ["amount_planned", "amount_billed", "amount_actual"]:
+            for key in ["amount_planned", "amount_billed", "amount_approved", "amount_actual"]:
                 if pd.isna(row.get(key)):
                     row[key] = None
                 elif adjust_inflation_to and row_year:
@@ -225,6 +225,7 @@ def api_malefnasvid():
         source_column_map = {
             "plan": "amount_planned",
             "bill": "amount_billed",
+            "bill_approved": "amount_approved",
             "accounts": "amount_actual"
         }
         amount_col = source_column_map.get(source)
@@ -260,7 +261,7 @@ def api_malefnasvid():
     # No filters - return all data
     result_dict = result.to_dict("records")
     for row in result_dict:
-        for key in ["amount_planned", "amount_billed", "amount_actual"]:
+        for key in ["amount_planned", "amount_billed", "amount_approved", "amount_actual"]:
             if pd.isna(row.get(key)):
                 row[key] = None
     return jsonify(result_dict)
@@ -333,6 +334,7 @@ def comparison():
     # Determine which sources have data for which years
     years_with_plans = sorted(df[df["amount_planned"].notna()]["year"].unique().tolist())
     years_with_bills = sorted(df[df["amount_billed"].notna()]["year"].unique().tolist())
+    years_with_bills_approved = sorted(df[df["amount_approved"].notna()]["year"].unique().tolist())
     years_with_accounts = sorted(df[df["amount_actual"].notna()]["year"].unique().tolist())
 
     return render_template(
@@ -340,8 +342,85 @@ def comparison():
         years=years,
         years_with_plans=years_with_plans,
         years_with_bills=years_with_bills,
+        years_with_bills_approved=years_with_bills_approved,
         years_with_accounts=years_with_accounts,
     )
+
+
+@app.route("/malefnasvid/<area_code>")
+def malefnasvid_detail(area_code):
+    """Detail page for a specific malefnasvið showing institution breakdown."""
+    # Load institution-level data
+    institutions_file = PROJECT_DIR / "data" / "processed" / "budget_bills_approved" / f"bill_*_approved_institutions.parquet"
+
+    # Try to find institution data files
+    import glob
+    institution_files = glob.glob(str(institutions_file))
+
+    if not institution_files:
+        return render_template("error.html", message="Institution data not available yet."), 404
+
+    # Load all institution files and filter by area
+    dfs = [pd.read_parquet(f) for f in institution_files]
+    df_institutions = pd.concat(dfs, ignore_index=True) if dfs else None
+
+    if df_institutions is None:
+        return render_template("error.html", message="Institution data not available yet."), 404
+
+    # Filter to requested area
+    area_data = df_institutions[df_institutions["malefnasvid_nr"] == area_code]
+
+    if area_data.empty:
+        return render_template("error.html", message=f"No data found for málefnasvið {area_code}."), 404
+
+    # Get area name from first row
+    area_name = area_data.iloc[0]["malefnasvid"]
+
+    return render_template(
+        "malefnasvid_detail.html",
+        area_code=area_code,
+        area_name=area_name,
+    )
+
+
+@app.route("/api/malefnasvid/<area_code>/institutions")
+def api_malefnasvid_institutions(area_code):
+    """API endpoint for institution-level breakdown of a malefnasvið."""
+    # Load institution-level data
+    institutions_file = PROJECT_DIR / "data" / "processed" / "budget_bills_approved" / f"bill_*_approved_institutions.parquet"
+
+    import glob
+    institution_files = sorted(glob.glob(str(institutions_file)))
+
+    if not institution_files:
+        return jsonify({"error": "Institution data not available"}), 404
+
+    # Load all institution files
+    dfs = [pd.read_parquet(f) for f in institution_files]
+    df_institutions = pd.concat(dfs, ignore_index=True) if dfs else None
+
+    if df_institutions is None:
+        return jsonify({"error": "Institution data not available"}), 404
+
+    # Filter to requested area
+    area_data = df_institutions[df_institutions["malefnasvid_nr"] == area_code]
+
+    if area_data.empty:
+        return jsonify({"error": f"No data found for málefnasvið {area_code}"}), 404
+
+    # Get year filter if provided
+    year = request.args.get("year", type=int)
+    if year:
+        area_data = area_data[area_data["year"] == year]
+
+    # Convert to JSON, replacing all NaN with None
+    result = area_data.to_dict("records")
+    for row in result:
+        for key in row:
+            if pd.isna(row.get(key)):
+                row[key] = None
+
+    return jsonify(result)
 
 
 @app.route("/budget-lines")

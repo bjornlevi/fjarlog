@@ -299,9 +299,8 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
 
         result_rows = []
 
-        # Filter to only "Framlög úr ríkissjóði" (grants from treasury) type
-        # CSV contains multiple Tegund/TegundNota (type) rows per item - we only want the allocation type
-        # For 2025-2026 where this type doesn't exist, use "Gjöld" (expenses) instead
+        # Filter to only "Heildarútgjöld" (total expenses) type
+        # CSV contains multiple Tegund/TegundNota (type) rows per item - we only want the total type
         type_col = None
         if 'Tegund' in df.columns:
             type_col = 'Tegund'
@@ -311,12 +310,9 @@ def extract_from_csv(file_path: Path) -> Optional[pd.DataFrame]:
             type_col = df.columns[8]
 
         if type_col:
-            # Try primary filter first
-            if 'Framlög úr ríkissjóði' in df[type_col].values:
-                df = df[df[type_col] == 'Framlög úr ríkissjóði']
-            elif 'Gjöld' in df[type_col].values:
-                # Fallback for 2025-2026 format
-                df = df[df[type_col] == 'Gjöld']
+            # Filter to Heildarútgjöld (total expenses)
+            if 'Heildarútgjöld' in df[type_col].values:
+                df = df[df[type_col] == 'Heildarútgjöld']
 
         # Expected columns: Ár, Afurð, FlokkunNy, Málefnasvið, Málaflokkur, Ráðuneyti, Liður, Viðfang, Tegund, Upphæð
         if len(df.columns) < 10:

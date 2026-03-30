@@ -31,7 +31,7 @@ OUTPUT_FILE = CURATED_DIR / "malefnasvid_comparison.parquet"
 def load_all_sources():
     """Load and prepare data from all three sources."""
 
-    # Load bills - using malefnasvid version when available (2020-2026)
+    # Load proposed bills - using malefnasvid version when available (2020-2026)
     bills_data = []
     bills_dir = PROCESSED_DIR / "budget_bills"
 
@@ -51,14 +51,33 @@ def load_all_sources():
             df = pd.read_parquet(parquet_file)
             df['source'] = 'bill'
             bills_data.append(df)
-            logger.info(f"Loaded bills for {year}: {len(df)} rows")
+            logger.info(f"Loaded proposed bills for {year}: {len(df)} rows")
 
     if bills_data:
         df_bills = pd.concat(bills_data, ignore_index=True)
-        logger.info(f"Total bills data: {len(df_bills)} rows across {df_bills['year'].nunique()} years")
+        logger.info(f"Total proposed bills data: {len(df_bills)} rows across {df_bills['year'].nunique()} years")
     else:
         df_bills = pd.DataFrame(columns=['year', 'malefnasvid_nr', 'malefnasvid', 'amount', 'source'])
-        logger.warning("No bills data found")
+        logger.warning("No proposed bills data found")
+
+    # Load approved bills (samþykkt fjárlög) - 2018-2026
+    approved_bills_data = []
+    approved_bills_dir = PROCESSED_DIR / "budget_bills_approved"
+
+    for year in range(2018, 2027):
+        parquet_file = approved_bills_dir / f"bill_{year}_approved_malefnasvid.parquet"
+        if parquet_file.exists():
+            df = pd.read_parquet(parquet_file)
+            df['source'] = 'bill_approved'
+            approved_bills_data.append(df)
+            logger.info(f"Loaded approved bills for {year}: {len(df)} rows")
+
+    if approved_bills_data:
+        df_approved_bills = pd.concat(approved_bills_data, ignore_index=True)
+        logger.info(f"Total approved bills data: {len(df_approved_bills)} rows across {df_approved_bills['year'].nunique()} years")
+    else:
+        df_approved_bills = pd.DataFrame(columns=['year', 'malefnasvid_nr', 'malefnasvid', 'amount', 'source'])
+        logger.info("No approved bills data found")
 
     # Load accounts (2015-2025)
     accounts_data = []
@@ -97,17 +116,19 @@ def load_all_sources():
         df_plans = pd.DataFrame(columns=['year', 'malefnasvid_nr', 'malefnasvid', 'amount', 'source'])
         logger.warning("No plans data found")
 
-    return df_bills, df_accounts, df_plans
+    return df_bills, df_approved_bills, df_accounts, df_plans
 
 
 def build_comparison():
     """Build the unified comparison dataset."""
-    df_bills, df_accounts, df_plans = load_all_sources()
+    df_bills, df_approved_bills, df_accounts, df_plans = load_all_sources()
 
     # Get the set of all years
     all_years = set()
     if not df_bills.empty:
         all_years.update(df_bills['year'].unique())
+    if not df_approved_bills.empty:
+        all_years.update(df_approved_bills['year'].unique())
     if not df_accounts.empty:
         all_years.update(df_accounts['year'].unique())
     if not df_plans.empty:
@@ -130,6 +151,9 @@ def build_comparison():
     for _, row in df_bills.iterrows():
         if row['malefnasvid_nr'] not in malefnasvid_names:
             malefnasvid_names[row['malefnasvid_nr']] = row.get('malefnasvid')
+    for _, row in df_approved_bills.iterrows():
+        if row['malefnasvid_nr'] not in malefnasvid_names:
+            malefnasvid_names[row['malefnasvid_nr']] = row.get('malefnasvid')
     for _, row in df_accounts.iterrows():
         if row['malefnasvid_nr'] not in malefnasvid_names:
             malefnasvid_names[row['malefnasvid_nr']] = row.get('malefnasvid')
@@ -148,6 +172,12 @@ def build_comparison():
             if not matching.empty:
                 bill_row = matching.iloc[0]
 
+        approved_bill_row = None
+        if not df_approved_bills.empty:
+            matching = df_approved_bills[(df_approved_bills['year'] == year) & (df_approved_bills['malefnasvid_nr'] == malefnasvid_nr)]
+            if not matching.empty:
+                approved_bill_row = matching.iloc[0]
+
         account_row = None
         if not df_accounts.empty:
             matching = df_accounts[(df_accounts['year'] == year) & (df_accounts['malefnasvid_nr'] == malefnasvid_nr)]
@@ -165,6 +195,7 @@ def build_comparison():
 
         # Extract amounts
         amount_billed = bill_row['amount'] if bill_row is not None else None
+        amount_approved = approved_bill_row['amount'] if approved_bill_row is not None else None
         amount_actual = account_row['amount'] if account_row is not None else None
         amount_planned = plan_row['amount'] if plan_row is not None else None
 
@@ -174,6 +205,7 @@ def build_comparison():
             'malefnasvid': malefnasvid_name,
             'amount_planned': amount_planned,
             'amount_billed': amount_billed,
+            'amount_approved': amount_approved,
             'amount_actual': amount_actual,
         })
 
@@ -185,13 +217,14 @@ def build_comparison():
     logger.info(f"  Years: {sorted(df_result['year'].unique())}")
     logger.info(f"  Planned values: {df_result['amount_planned'].notna().sum()}")
     logger.info(f"  Billed values: {df_result['amount_billed'].notna().sum()}")
+    logger.info(f"  Approved values: {df_result['amount_approved'].notna().sum()}")
     logger.info(f"  Actual values: {df_result['amount_actual'].notna().sum()}")
 
     # Sample output
     logger.info(f"\nSample rows (2024):")
     sample = df_result[df_result['year'] == 2024].head(5)
     for _, row in sample.iterrows():
-        logger.info(f"  {row['malefnasvid_nr']} {row['malefnasvid'][:30]:30} - Plan: {row['amount_planned']}, Bill: {row['amount_billed']}, Actual: {row['amount_actual']}")
+        logger.info(f"  {row['malefnasvid_nr']} {row['malefnasvid'][:30]:30} - Plan: {row['amount_planned']}, Bill: {row['amount_billed']}, Appr: {row['amount_approved']}, Actual: {row['amount_actual']}")
 
     return df_result
 
