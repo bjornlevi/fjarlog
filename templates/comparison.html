@@ -519,7 +519,7 @@
         document.getElementById('error').classList.add('hidden');
         document.getElementById('table-body').innerHTML = '';
 
-        let apiUrl = `/api/malefnasvid?source=${source}`;
+        let apiUrl = `${PREFIX}/api/malefnasvid?source=${source}`;
         if (inflationEnabled) {
             apiUrl += '&adjust_inflation_to=2026';
         }

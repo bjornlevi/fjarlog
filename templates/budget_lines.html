@@ -58,10 +58,13 @@
 {% endif %}
 
 <script>
+    // Prefix for navigation (set by Flask/Jinja2)
+    const PREFIX = '{{ PREFIX }}';
+
     function loadBudgetLines() {
         const year = document.getElementById('year-select').value;
         if (year) {
-            window.location.href = `/budget-lines?year=${year}`;
+            window.location.href = `${PREFIX}/budget-lines?year=${year}`;
         }
     }
 
