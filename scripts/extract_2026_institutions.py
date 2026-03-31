@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Extract institution-level data from 2025 approved budget bill addendum.
-Uses the same segmentation approach as 2020/2021/2022/2023/2024: find all XX-XXX codes and map to areas.
+Extract institution-level data from 2026 approved budget bill addendum.
+Uses the same segmentation approach as 2020/2021/2022/2023/2024/2025: find all XX-XXX codes and map to areas.
 """
 
 import re
@@ -10,33 +10,31 @@ from pathlib import Path
 import subprocess
 
 PROJECT_DIR = Path(__file__).parent.parent
-PDF_FILE = PROJECT_DIR / "data/landing/budget_bills_approved/2025/addendum/bill_2025_approved_addendum.pdf"
-LAYOUT_TEXT = Path("/tmp/addendum_2025_layout.txt")
-OUTPUT_JSON = Path("/tmp/institutions_2025_complete.json")
+PDF_FILE = PROJECT_DIR / "data/landing/budget_bills_approved/2026/addendum/bill_2026_approved_addendum.pdf"
+LAYOUT_TEXT = Path("/tmp/addendum_2026_layout.txt")
+OUTPUT_JSON = Path("/tmp/institutions_2026_complete.json")
 
 def extract_layout_text():
     """Extract text from PDF using pdftotext with layout preservation."""
-    print("Extracting text from 2025 PDF (pages 11-90)...")
+    print("Extracting text from 2026 PDF (pages 10-46)...")
     subprocess.run(
-        ["pdftotext", "-layout", "-f", "11", "-l", "90", str(PDF_FILE), str(LAYOUT_TEXT)],
+        ["pdftotext", "-layout", "-f", "10", "-l", "46", str(PDF_FILE), str(LAYOUT_TEXT)],
         check=True
     )
 
     with open(LAYOUT_TEXT, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
-    # Find Yfirlit 2 section
+    # Find Yfirlit 2 or similar section
     start_idx = None
-    end_idx = None
-
     for i, line in enumerate(lines):
-        if "Yfirlit 2" in line or "Fjárveitingar eftir stofnunum" in line:
+        if "Yfirlit 2" in line or ("Fjárveitingar eftir stofnunum" in line):
             start_idx = i
             break
 
     if start_idx is None:
-        print("Warning: Could not find Yfirlit 2 section, using page 11 onwards")
-        # Page 11 is approximately line 250-300
+        print("Warning: Could not find Yfirlit 2 section, using page 10 onwards")
+        # Page 10 is approximately line 250-300
         start_idx = 250
 
     return ''.join(lines[start_idx:])
@@ -84,7 +82,7 @@ def find_and_extract_institutions(text, area_headers):
         code = f"{match.group(1)}-{match.group(2)}"
         rest_of_line = match.group(3)
 
-        # Find which area this institution belongs to
+        # Find which área this institution belongs to
         area_code = None
         for area in area_headers:
             if inst_pos > area['pos']:
@@ -155,7 +153,7 @@ def build_institution_data(area_headers, institutions_by_area):
 
 def main():
     print("=" * 80)
-    print("2025 Institution-Level Extraction")
+    print("2026 Institution-Level Extraction")
     print("=" * 80)
 
     # Extract text
@@ -205,8 +203,8 @@ def main():
     print(f"Saved JSON: {OUTPUT_JSON}\n")
 
     # Generate and save Python code
-    code_file = Path("/tmp/institution_data_2025_code.py")
-    code_lines = ['INSTITUTION_DATA_2025_COMPLETE = {']
+    code_file = Path("/tmp/institution_data_2026_code.py")
+    code_lines = ['INSTITUTION_DATA_2026_COMPLETE = {']
 
     for area_code in sorted(institution_data.keys()):
         area_name, area_total, institutions = institution_data[area_code]
