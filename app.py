@@ -5,6 +5,7 @@ Displays and compares budget data across bills, plans, and accounts.
 """
 
 from flask import Flask, render_template, request, jsonify
+from werkzeug.middleware.proxy_fix import ProxyFix
 from pathlib import Path
 import pandas as pd
 import logging
@@ -15,6 +16,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# Handle X-Script-Name header from reverse proxy (for /fjarlog prefix)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_script_name=1)
 
 # Custom Jinja2 filter for Icelandic number formatting
 def format_number_is(value):
