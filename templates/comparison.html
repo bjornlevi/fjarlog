@@ -491,8 +491,8 @@
                     const actualMA = row.amount_actual ? Math.round(row.amount_actual) : null;
 
                     tr.innerHTML = `
-                        <td class="malefnasvid-nr"><a href="/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid_nr}</a></td>
-                        <td class="malefnasvid-name"><a href="/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid || 'Óþekkt'}</a></td>
+                        <td class="malefnasvid-nr"><a href="{{ PREFIX }}/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid_nr}</a></td>
+                        <td class="malefnasvid-name"><a href="{{ PREFIX }}/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid || 'Óþekkt'}</a></td>
                         <td class="numeric">${plannedMA !== null ? formatNumberIS(plannedMA) : '—'}</td>
                         <td class="numeric">${billedMA !== null ? formatNumberIS(billedMA) : '—'}</td>
                         <td class="numeric">${approvedMA !== null ? formatNumberIS(approvedMA) : '—'}</td>
@@ -577,8 +577,8 @@
                 data.forEach(row => {
                     const tr = document.createElement('tr');
                     let cells = `
-                        <td class="malefnasvid-nr"><a href="/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid_nr}</a></td>
-                        <td class="malefnasvid-name"><a href="/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid || 'Óþekkt'}</a></td>
+                        <td class="malefnasvid-nr"><a href="{{ PREFIX }}/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid_nr}</a></td>
+                        <td class="malefnasvid-name"><a href="{{ PREFIX }}/malefnasvid/${row.malefnasvid_nr}" class="area-link">${row.malefnasvid || 'Óþekkt'}</a></td>
                     `;
 
                     years.forEach(year => {

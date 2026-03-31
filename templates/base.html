@@ -240,11 +240,11 @@
             <p>Samanburðarkerfi fyrir fjárlög og fjármálaáætlanir ríkisins</p>
             <nav>
                 <ul>
-                    <li><a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}">Forsíða</a></li>
-                    <li><a href="/comparison" class="{% if request.endpoint == 'comparison' %}active{% endif %}">Samanburður</a></li>
-                    <li><a href="/fjarmalaaeatlun" class="{% if request.endpoint == 'fjarmalaaeatlun' %}active{% endif %}">Fjármálaáætlun</a></li>
-                    <li><a href="/budget-lines" class="{% if request.endpoint == 'budget_lines' %}active{% endif %}">Fjárlagaliðir</a></li>
-                    <li><a href="/about" class="{% if request.endpoint == 'about' %}active{% endif %}">Um verkefnið</a></li>
+                    <li><a href="{{ PREFIX }}/" class="{% if request.endpoint == 'index' %}active{% endif %}">Forsíða</a></li>
+                    <li><a href="{{ PREFIX }}/comparison" class="{% if request.endpoint == 'comparison' %}active{% endif %}">Samanburður</a></li>
+                    <li><a href="{{ PREFIX }}/fjarmalaaeatlun" class="{% if request.endpoint == 'fjarmalaaeatlun' %}active{% endif %}">Fjármálaáætlun</a></li>
+                    <li><a href="{{ PREFIX }}/budget-lines" class="{% if request.endpoint == 'budget_lines' %}active{% endif %}">Fjárlagaliðir</a></li>
+                    <li><a href="{{ PREFIX }}/about" class="{% if request.endpoint == 'about' %}active{% endif %}">Um verkefnið</a></li>
                 </ul>
             </nav>
         </div>

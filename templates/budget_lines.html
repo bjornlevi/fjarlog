@@ -40,7 +40,7 @@
             <tr class="line-row">
                 <td class="line-name">{{ line }}</td>
                 <td>
-                    <a href="/comparison?budget_line={{ line|urlencode }}&year={{ selected_year }}" style="color: #2d5555; text-decoration: none;">
+                    <a href="{{ PREFIX }}/comparison?budget_line={{ line|urlencode }}&year={{ selected_year }}" style="color: #2d5555; text-decoration: none;">
                         Samanburður →
                     </a>
                 </td>

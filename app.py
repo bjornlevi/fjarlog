@@ -52,6 +52,9 @@ def format_number_is(value):
 
 app.jinja_env.filters['format_number_is'] = format_number_is
 
+# Make PREFIX available in templates for URL construction
+app.jinja_env.globals['PREFIX'] = PREFIX
+
 # Paths
 PROJECT_DIR = Path(__file__).parent
 DATA_DIR = PROJECT_DIR / "data" / "curated"

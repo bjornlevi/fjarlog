@@ -265,7 +265,7 @@
 
 {% block content %}
 <div class="container">
-    <a href="/comparison" class="back-link">← Til baka á samanburðinn</a>
+    <a href="{{ PREFIX }}/comparison" class="back-link">← Til baka á samanburðinn</a>
 
     <!-- Málefnasvið Navigation -->
     {% if all_areas %}
@@ -273,7 +273,7 @@
         <h3 class="area-navigation-title">Málefnasvið</h3>
         <div class="area-buttons-grid">
             {% for area in all_areas %}
-            <a href="/malefnasvid/{{ area.code }}" class="area-button{% if area.code == area_code %} active{% endif %}" title="{{ area.name }}">
+            <a href="{{ PREFIX }}/malefnasvid/{{ area.code }}" class="area-button{% if area.code == area_code %} active{% endif %}" title="{{ area.name }}">
                 <span class="area-button-code">{{ area.code }}</span>
                 <span class="area-button-name">{{ area.name[:8] }}{% if area.name|length > 8 %}…{% endif %}</span>
             </a>
