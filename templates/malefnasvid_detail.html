@@ -108,53 +108,6 @@
         text-decoration: underline;
     }
 
-    .year-selector {
-        margin: 1.5rem 0;
-        padding: 1rem;
-        background: #f9f9f9;
-        border-radius: 4px;
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    .year-selector label {
-        font-weight: 500;
-        margin: 0;
-    }
-
-    .button-group {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .year-button {
-        padding: 0.5rem 1rem;
-        border: 2px solid #ccc;
-        background: white;
-        color: #333;
-        cursor: pointer;
-        font-size: 0.95rem;
-        border-radius: 4px;
-        transition: all 0.2s;
-        min-width: 50px;
-        text-align: center;
-    }
-
-    .year-button:hover {
-        border-color: #0066cc;
-        background: #f0f6ff;
-        color: #0066cc;
-    }
-
-    .year-button.active {
-        background: #0066cc;
-        color: white;
-        border-color: #0066cc;
-    }
-
     .institutions-table {
         width: 100%;
         border-collapse: collapse;
@@ -220,6 +173,93 @@
     .total-row .amount {
         color: #0066cc;
     }
+
+    .inflation-controls {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: #f9f9f9;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .inflation-button {
+        padding: 0.6rem 1.2rem;
+        background: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+
+    .inflation-button:hover {
+        background: #0052a3;
+    }
+
+    .inflation-button.active {
+        background: #ffd700;
+        color: #333;
+    }
+
+    .inflation-info {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .multi-year-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .multi-year-table thead {
+        background: #2d5555;
+    }
+
+    .multi-year-table th {
+        padding: 0.875rem;
+        text-align: right;
+        font-weight: 600;
+        color: white;
+    }
+
+    .multi-year-table th:first-child {
+        text-align: left;
+    }
+
+    .multi-year-table td {
+        padding: 0.875rem;
+        border-bottom: 1px solid #eee;
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
+
+    .multi-year-table td:first-child {
+        text-align: left;
+        font-weight: 500;
+    }
+
+    .multi-year-table tbody tr:hover {
+        background: #fafafa;
+    }
+
+    .multi-year-table tbody tr:last-child td {
+        border-bottom: 2px solid #ddd;
+    }
+
+    .multi-year-table .total-row {
+        font-weight: 600;
+        background: #e8f0ff;
+        border-top: 2px solid #0066cc;
+    }
+
+    .no-amount {
+        color: #ccc;
+    }
 </style>
 {% endblock %}
 
@@ -233,7 +273,7 @@
         <h3 class="area-navigation-title">Málefnasvið</h3>
         <div class="area-buttons-grid">
             {% for area in all_areas %}
-            <a href="/malefnasvid/{{ area.code }}" class="area-button{% if area.code == area_code %} active{% endif %}" title="{{ area.name }}" data-area="{{ area.code }}">
+            <a href="/malefnasvid/{{ area.code }}" class="area-button{% if area.code == area_code %} active{% endif %}" title="{{ area.name }}">
                 <span class="area-button-code">{{ area.code }}</span>
                 <span class="area-button-name">{{ area.name[:8] }}{% if area.name|length > 8 %}…{% endif %}</span>
             </a>
@@ -249,179 +289,150 @@
         </div>
     </div>
 
-    <div class="year-selector">
-        <label>Ár:</label>
-        <div id="year-buttons" class="button-group"></div>
+    <div class="inflation-controls">
+        <button id="inflation-toggle" class="inflation-button">Leiðrétta fyrir verðbólgu</button>
+        <span id="inflation-info" class="inflation-info"></span>
     </div>
 
     <div id="institutions-container">
-        <p class="no-data">Engin gögn til fyrir valið ár.</p>
+        <p class="no-data">Engin gögn til fyrir þetta málefnasvið.</p>
     </div>
 </div>
 
 <script>
     const areaCode = '{{ area_code }}';
-    let availableYears = [];
-    let selectedYear = null;
+    let inflationAdjusted = false;
+    let allYearsData = {};
 
-    // Get year from URL parameters if present
-    function getYearFromURL() {
-        const params = new URLSearchParams(window.location.search);
-        const yearParam = params.get('year');
-        return yearParam ? parseInt(yearParam) : null;
-    }
-
-    // Add year parameter to area buttons for preservation
-    function updateAreaButtonLinks() {
-        if (selectedYear) {
-            document.querySelectorAll('.area-button').forEach(btn => {
-                const areaCode = btn.getAttribute('data-area');
-                btn.href = `/malefnasvid/${areaCode}?year=${selectedYear}`;
-            });
-        }
-    }
-
-    async function loadYears() {
-        try {
-            availableYears = [];
-
-            // First fetch all data to get all available years
-            const allResponse = await fetch(`/api/malefnasvid/${areaCode}/institutions`);
-
-            if (allResponse.ok) {
-                const allData = await allResponse.json();
-                const yearsSet = new Set();
-
-                allData.forEach(row => {
-                    if (row.year) {
-                        yearsSet.add(row.year);
-                    }
-                });
-
-                availableYears = Array.from(yearsSet).sort((a, b) => b - a);
-            }
-
-            // Create year buttons
-            const buttonsContainer = document.getElementById('year-buttons');
-            buttonsContainer.innerHTML = '';
-
-            if (availableYears.length === 0) {
-                buttonsContainer.innerHTML = '<p class="no-data">Engin ár með gögnum tiltæk.</p>';
-                document.getElementById('institutions-container').innerHTML = '<p class="no-data">Engin gögn til fyrir valið ár.</p>';
-                return;
-            }
-
-            availableYears.forEach(year => {
-                const button = document.createElement('button');
-                button.textContent = year;
-                button.className = 'year-button';
-                button.onclick = () => selectYear(year);
-                buttonsContainer.appendChild(button);
-            });
-
-            // Try to restore year from URL, otherwise use most recent
-            const urlYear = getYearFromURL();
-            const yearToSelect = (urlYear && availableYears.includes(urlYear)) ? urlYear : availableYears[0];
-            selectYear(yearToSelect);
-        } catch (error) {
-            console.error('Error loading years:', error);
-        }
-    }
-
-    // Update area buttons with year parameter on page load
-    window.addEventListener('load', () => {
-        const urlYear = getYearFromURL();
-        if (urlYear) {
-            selectedYear = urlYear;
-            updateAreaButtonLinks();
-        }
-    });
-
-    function selectYear(year) {
-        selectedYear = year;
-
-        // Update button states
-        document.querySelectorAll('.year-button').forEach(btn => {
-            btn.classList.toggle('active', btn.textContent === year.toString());
-        });
-
-        // Update area button links to preserve year
-        updateAreaButtonLinks();
-
-        loadInstitutionData(year);
-    }
-
-    async function loadInstitutionData(year) {
+    async function loadAllYearsData() {
         const container = document.getElementById('institutions-container');
 
-        if (!year) {
-            container.innerHTML = '<p class="no-data">Veldu ár til að skoða stofnunagögn.</p>';
-            return;
-        }
-
         try {
-            const url = `/api/malefnasvid/${areaCode}/institutions?year=${year}`;
-            const response = await fetch(url);
+            const response = await fetch(`/api/malefnasvid/${areaCode}/institutions`);
             if (!response.ok) {
-                container.innerHTML = '<p class="no-data">Engin gögn til fyrir valið ár.</p>';
+                container.innerHTML = '<p class="no-data">Engin gögn til fyrir þetta málefnasvið.</p>';
                 return;
             }
 
             const data = await response.json();
             if (data.length === 0) {
-                container.innerHTML = '<p class="no-data">Engin gögn til fyrir valið ár.</p>';
+                container.innerHTML = '<p class="no-data">Engin gögn til fyrir þetta málefnasvið.</p>';
                 return;
             }
 
-            // Filter to only institution records (those with institution_code)
-            const institutions = data.filter(row => row.institution_code);
-            const total = institutions.reduce((sum, row) => sum + (row.heildarfjarhemild || 0), 0);
+            // Organize data by year
+            const byYear = {};
+            const allInstitutions = new Map();
 
-            if (institutions.length === 0) {
-                container.innerHTML = '<p class="no-data">Engin gögn til fyrir valið ár.</p>';
-                return;
-            }
+            data.forEach(row => {
+                if (row.institution_code) {
+                    const year = row.year;
+                    if (!byYear[year]) {
+                        byYear[year] = [];
+                    }
+                    byYear[year].push(row);
 
-            let html = `
-                <table class="institutions-table">
-                    <thead>
-                        <tr>
-                            <th>Stofnun</th>
-                            <th>Heiti</th>
-                            <th class="amount">Heildarfjárheimild (ma.kr.)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            institutions.forEach(row => {
-                const amount = row.heildarfjarhemild || 0;
-                html += `
-                    <tr>
-                        <td class="institution-code">${row.institution_code}</td>
-                        <td class="institution-name">${row.institution_name}</td>
-                        <td class="amount">${amount.toFixed(1)}</td>
-                    </tr>
-                `;
+                    // Track all unique institutions
+                    const key = `${row.institution_code}-${row.institution_name}`;
+                    if (!allInstitutions.has(key)) {
+                        allInstitutions.set(key, {
+                            code: row.institution_code,
+                            name: row.institution_name
+                        });
+                    }
+                }
             });
 
-            html += `
-                        <tr class="total-row">
-                            <td colspan="2">Samtals fyrir ${areaCode}</td>
-                            <td class="amount">${total.toFixed(1)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
+            allYearsData = byYear;
 
-            container.innerHTML = html;
+            // Get sorted years
+            const years = Object.keys(byYear).map(y => parseInt(y)).sort((a, b) => a - b);
+
+            if (years.length === 0) {
+                container.innerHTML = '<p class="no-data">Engin gögn til fyrir þetta málefnasvið.</p>';
+                return;
+            }
+
+            renderMultiYearTable(years, byYear, allInstitutions);
         } catch (error) {
-            console.error('Error loading institution data:', error);
+            console.error('Error loading data:', error);
             container.innerHTML = '<p class="no-data">Villa við að sækja gögn.</p>';
         }
     }
 
-    // Load years on page load
-    loadYears();
+    function renderMultiYearTable(years, byYear, allInstitutions) {
+        const container = document.getElementById('institutions-container');
+
+        // Sort institutions by code
+        const sortedInstitutions = Array.from(allInstitutions.values()).sort((a, b) => a.code.localeCompare(b.code));
+
+        let html = `
+            <table class="multi-year-table">
+                <thead>
+                    <tr>
+                        <th>Stofnun</th>
+        `;
+
+        // Add year columns
+        years.forEach(year => {
+            html += `<th>${year}</th>`;
+        });
+
+        html += `
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        // Add institution rows
+        const yearTotals = {};
+        years.forEach(year => yearTotals[year] = 0);
+
+        sortedInstitutions.forEach(inst => {
+            html += `<tr><td><strong>${inst.code}</strong> ${inst.name}</td>`;
+
+            years.forEach(year => {
+                const yearData = byYear[year] || [];
+                const instData = yearData.find(d => d.institution_code === inst.code);
+
+                if (instData) {
+                    const amount = instData.heildarfjarhemild || 0;
+                    html += `<td class="amount">${amount.toFixed(1)}</td>`;
+                    yearTotals[year] += amount;
+                } else {
+                    html += `<td class="no-amount">—</td>`;
+                }
+            });
+
+            html += `</tr>`;
+        });
+
+        // Add total row
+        html += `<tr class="total-row"><td>Samtals fyrir ${areaCode}</td>`;
+        years.forEach(year => {
+            html += `<td class="amount">${yearTotals[year].toFixed(1)}</td>`;
+        });
+        html += `</tr></tbody></table>`;
+
+        container.innerHTML = html;
+    }
+
+    // Inflation adjustment button
+    document.getElementById('inflation-toggle').addEventListener('click', function() {
+        inflationAdjusted = !inflationAdjusted;
+        this.classList.toggle('active', inflationAdjusted);
+
+        const infoEl = document.getElementById('inflation-info');
+        if (inflationAdjusted) {
+            infoEl.textContent = 'ⓘ Gildi eru leiðrétt fyrir verðbólgu (2024 verðlag)';
+        } else {
+            infoEl.textContent = '';
+        }
+
+        // TODO: Implement actual inflation adjustment
+    });
+
+    // Load data on page load
+    window.addEventListener('load', loadAllYearsData);
 </script>
 {% endblock %}

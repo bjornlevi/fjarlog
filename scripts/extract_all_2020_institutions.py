@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Complete extraction of all institutions from 2020 approved budget bill addendum.
-Finds all XX-XXX institution codes, extracts names and heildarfjárheimild,
-and maps each to its nearest málefnasvið (policy area).
+Extract institution-level data from 2020 approved budget bill addendum.
+Uses the same segmentation approach as 2020/2021/2022/2023: find all XX-XXX codes and map to areas.
 """
 
 import re
@@ -12,11 +11,13 @@ import subprocess
 
 PROJECT_DIR = Path(__file__).parent.parent
 PDF_FILE = PROJECT_DIR / "data/landing/budget_bills_approved/2020/addendum/bill_2020_approved_addendum.pdf"
-LAYOUT_TEXT = Path("/tmp/addendum_layout.txt")
+LAYOUT_TEXT = Path("/tmp/addendum_2020_layout.txt")
 OUTPUT_JSON = Path("/tmp/institutions_2020_complete.json")
 
 def extract_layout_text():
     """Extract text from PDF using pdftotext with layout preservation."""
+    print("Extracting text from 2020 PDF (pages 11-50)...")
+    pdftotext with layout preservation."""
     print("Extracting text from PDF...")
     subprocess.run(
         ["pdftotext", "-layout", str(PDF_FILE), str(LAYOUT_TEXT)],
@@ -26,173 +27,186 @@ def extract_layout_text():
     with open(LAYOUT_TEXT, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
-    # Find Yfirlit 2
+    # Find Yfirlit 2 or similar section
     start_idx = None
     for i, line in enumerate(lines):
-        if "Yfirlit 2" in line:
+        if "Yfirlit 2" in line or ("Fjárveitingar eftir stofnunum" in line):
             start_idx = i
             break
+
+    if start_idx is None:
+        print("Warning: Could not find Yfirlit 2 section, using page 11 onwards")
+        # Page 11 is approximately line 250-300
+        start_idx = 250
 
     return ''.join(lines[start_idx:])
 
 
 def find_area_headers(text):
-    """Find all málefnasvið headers (01-35)."""
-    area_pattern = r'^(\d{2}) '
-    area_headers = []
-
-    for match in re.finditer(area_pattern, text, re.MULTILINE):
-        area_code = match.group(1)
-        if 1 <= int(area_code) <= 35:
-            line_start = match.start()
-            line_end = text.find('\n', line_start)
-            full_line = text[line_start:line_end]
-            name_match = re.match(r'\d{2}\s+([^.]+)', full_line)
-            area_name = name_match.group(1).strip() if name_match else ""
-
-            area_headers.append({
-                'code': area_code,
-                'name': area_name,
-                'pos': line_start
-            })
-
-    # Remove duplicates (keep first)
-    seen = set()
-    unique = []
-    for h in area_headers:
-        if h['code'] not in seen:
-            unique.append(h)
-            seen.add(h['code'])
-
-    return unique
+    """Extract area headers - not actively used but kept for compatibility."""
+    return []
 
 
 def find_and_extract_institutions(text, area_headers):
-    """Find all XX-XXX institution codes and extract data."""
-    institution_pattern = r'^.*?(\d{2})-(\d{3})\s+([^\n]+)$'
+    """Extract institutions by line-by-line parsing with area context tracking.
 
+    Handles multi-line institutions by accumulating lines until we have 7 number groups.
+    Properly assigns institutions to areas based on area header detection.
+    Returns: (institutions_by_area, area_names) where area_names maps code -> name
+    """
     institutions_by_area = {}
+    area_names = {}
 
-    for match in re.finditer(institution_pattern, text, re.MULTILINE):
-        inst_pos = match.start()
-        code = f"{match.group(1)}-{match.group(2)}"
-        rest_of_line = match.group(3)
+    lines = text.split('\n')
+    current_block = []
+    current_area = None
 
-        # Find which área this institution belongs to
-        area_code = None
-        for area in area_headers:
-            if inst_pos > area['pos']:
-                area_code = area['code']
-            else:
-                break
+    for line in lines:
+        # Clean line: collapse spaces/dots to single space
+        cleaned = re.sub(r'[\s.]+', ' ', line).strip()
 
-        if not area_code:
+        if not cleaned:
+            # Empty line - finalize block if we have one
+            if current_block and len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+                if current_area:
+                    _save_institution(current_block, current_area, institutions_by_area)
+                current_block = []
             continue
 
-        # Extract institution name and amounts
-        # Find where amounts start (first digit)
-        digit_pos = None
-        for i, c in enumerate(rest_of_line):
-            if c.isdigit():
-                digit_pos = i
-                break
+        # Check if this is an area header line (01-35 followed by space and name)
+        # Capture area name up to the first digit
+        area_match = re.match(r'^(0[1-9]|[12][0-9]|3[0-5])(?!\.\d)\s+([^0-9]+)', cleaned)
+        if area_match:
+            # New area header
+            if current_block and len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+                if current_area:
+                    _save_institution(current_block, current_area, institutions_by_area)
+                current_block = []
 
-        if digit_pos is None:
+            area_code = area_match.group(1)
+            area_name = area_match.group(2).strip()
+            current_area = {'code': area_code, 'name': area_name}
+            area_names[area_code] = area_name
             continue
 
-        # Name is everything before first digit
-        name_section = rest_of_line[:digit_pos].rstrip()
-        amounts_section = rest_of_line[digit_pos:].strip()
-
-        # Clean name: remove trailing dots and spaces
-        name = re.sub(r'\s*\.+\s*$', '', name_section).strip()
-
-        if not name:
+        if not current_area:
             continue
 
-        # Extract amounts
-        amount_pattern = r'[\d.,]+'
-        amounts = re.findall(amount_pattern, amounts_section)
+        # Check if line starts with institution code
+        if re.match(r'^\d{2}-\d{3}', cleaned):
+            # Start of new institution
+            if current_block and len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+                _save_institution(current_block, current_area, institutions_by_area)
+            current_block = [cleaned]
+        elif current_block:
+            # Continuation of current institution
+            current_block.append(cleaned)
 
-        if len(amounts) >= 5:
-            heildarfjarhemild_str = amounts[4]
-            heildarfjarhemild_str = heildarfjarhemild_str.replace('.', '').replace(',', '.')
-            try:
-                heildarfjarhemild = float(heildarfjarhemild_str)
+            # Check if we have enough numbers to finalize
+            if len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+                _save_institution(current_block, current_area, institutions_by_area)
+                current_block = []
 
-                if area_code not in institutions_by_area:
-                    institutions_by_area[area_code] = []
+    # Finalize last block
+    if current_block and len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+        if current_area:
+            _save_institution(current_block, current_area, institutions_by_area)
 
-                institutions_by_area[area_code].append({
-                    'code': code,
-                    'name': name,
-                    'heildarfjarhemild': heildarfjarhemild
-                })
-            except ValueError:
-                pass
-
-    return institutions_by_area
+    return institutions_by_area, area_names
 
 
-def build_institution_data(area_headers, institutions_by_area):
-    """Build complete institution data dictionary."""
+def _save_institution(block, area, institutions_by_area):
+    """Save a single institution from a block of lines."""
+    if not block or not area:
+        return
+
+    full_text = ' '.join(block)
+
+    # Extract code from first line
+    code_match = re.match(r'^(\d{2})-(\d{3})', block[0])
+    if not code_match:
+        return
+
+    code = f"{code_match.group(1)}-{code_match.group(2)}"
+
+    # Extract name (everything in first line after code until first digit)
+    first_line = block[0]
+    code_end = first_line.find(code) + len(code)
+    after_code = first_line[code_end:].strip()
+
+    digit_pos = None
+    for i, c in enumerate(after_code):
+        if c.isdigit():
+            digit_pos = i
+            break
+
+    if digit_pos is None:
+        return
+
+    name = after_code[:digit_pos].strip()
+    if not name:
+        return
+
+    # Extract amounts - the last one is heildarfjárheimild (total budget authority)
+    amounts = re.findall(r'[\d.,]+', full_text)
+    if len(amounts) < 7:
+        return
+
+    # The last number is heildarfjárheimild
+    heildarfjarhemild_str = amounts[-1]
+    heildarfjarhemild_str = heildarfjarhemild_str.replace('.', '').replace(',', '.')
+
+    try:
+        heildarfjarhemild = float(heildarfjarhemild_str)
+    except ValueError:
+        return
+
+    # Assign to area
+    area_code = area['code']
+    if area_code not in institutions_by_area:
+        institutions_by_area[area_code] = []
+
+    institutions_by_area[area_code].append({
+        'code': code,
+        'name': name,
+        'heildarfjarhemild': heildarfjarhemild
+    })
+
+
+def build_institution_data(institutions_by_area, area_names):
+    """Build complete institution data dictionary from extracted institutions."""
     institution_data = {}
 
-    for area in area_headers:
-        area_code = area['code']
-        area_name = area['name']
+    # Build from institutions_by_area which has all the area info
+    for area_code in sorted(institutions_by_area.keys()):
+        institutions = institutions_by_area[area_code]
+        area_name = area_names.get(area_code, area_code)  # Use stored area name or code as fallback
 
-        institutions = institutions_by_area.get(area_code, [])
         area_total = sum(i['heildarfjarhemild'] for i in institutions)
-
         institution_data[area_code] = (area_name, area_total, institutions)
 
     return institution_data
 
 
-def generate_python_code(institution_data):
-    """Generate Python code for institution data."""
-    lines = ['INSTITUTION_DATA_2020_COMPLETE = {']
-
-    for area_code in sorted(institution_data.keys()):
-        area_name, area_total, institutions = institution_data[area_code]
-        area_name_escaped = area_name.replace('"', '\\"')
-
-        lines.append(f'    "{area_code}": (')
-        lines.append(f'        "{area_name_escaped}",')
-        lines.append(f'        {area_total},')
-        lines.append('        [')
-
-        for inst in institutions:
-            name_escaped = inst['name'].replace('"', '\\"')
-            lines.append(f'            ("{inst["code"]}", "{name_escaped}", {inst["heildarfjarhemild"]}),')
-
-        lines.append('        ]')
-        lines.append('    ),')
-
-    lines.append('}')
-    return '\n'.join(lines)
-
-
 def main():
     print("=" * 80)
-    print("Complete 2020 Institution-Level Extraction")
+    print("2020 Institution-Level Extraction")
     print("=" * 80)
 
     # Extract text
     text = extract_layout_text()
     print(f"Extracted {len(text):,} characters\n")
 
-    # Find area headers
+    # Find area headers (not used directly, but kept for compatibility)
     area_headers = find_area_headers(text)
     print(f"Found {len(area_headers)} area headers (01-35)")
 
     # Find and extract institutions
     print("Extracting all institutions by searching for XX-XXX pattern...")
-    institutions_by_area = find_and_extract_institutions(text, area_headers)
+    institutions_by_area, area_names = find_and_extract_institutions(text, area_headers)
 
     # Build complete data structure
-    institution_data = build_institution_data(area_headers, institutions_by_area)
+    institution_data = build_institution_data(institutions_by_area, area_names)
 
     # Print summary
     print("\nExtraction Summary by Area:")
@@ -226,21 +240,40 @@ def main():
     print(f"Saved JSON: {OUTPUT_JSON}\n")
 
     # Generate and save Python code
-    python_code = generate_python_code(institution_data)
-    code_file = Path("/tmp/institution_data_2020_complete.py")
+    code_file = Path("/tmp/institution_data_2020_code.py")
+    code_lines = ['INSTITUTION_DATA_2020_COMPLETE = {']
+
+    for area_code in sorted(institution_data.keys()):
+        area_name, area_total, institutions = institution_data[area_code]
+        area_name_escaped = area_name.replace('"', '\\"')
+
+        code_lines.append(f'    "{area_code}": (')
+        code_lines.append(f'        "{area_name_escaped}",')
+        code_lines.append(f'        {area_total},')
+        code_lines.append('        [')
+
+        for inst in institutions:
+            name_escaped = inst['name'].replace('"', '\\"')
+            code_lines.append(f'            ("{inst["code"]}", "{name_escaped}", {inst["heildarfjarhemild"]}),')
+
+        code_lines.append('        ]')
+        code_lines.append('    ),')
+
+    code_lines.append('}')
+    python_code = '\n'.join(code_lines)
+
     with open(code_file, 'w', encoding='utf-8') as f:
         f.write(python_code)
     print(f"Saved Python code: {code_file}\n")
 
     # Print preview
     print("=" * 80)
-    print("Python Code Preview (first 80 lines):")
+    print("Python Code Preview (first 60 lines):")
     print("=" * 80)
-    code_lines = python_code.split('\n')
-    for line in code_lines[:80]:
+    for line in code_lines[:60]:
         print(line)
-    if len(code_lines) > 80:
-        print(f"... ({len(code_lines) - 80} more lines)")
+    if len(code_lines) > 60:
+        print(f"... ({len(code_lines) - 60} more lines)")
 
 
 if __name__ == "__main__":

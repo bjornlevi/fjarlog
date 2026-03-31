@@ -27,7 +27,6 @@ def extract_layout_text():
 
     # Find Yfirlit 2 section
     start_idx = None
-    end_idx = None
 
     for i, line in enumerate(lines):
         if "Yfirlit 2" in line or "Fjárveitingar eftir stofnunum" in line:
@@ -36,10 +35,12 @@ def extract_layout_text():
 
     if start_idx is None:
         print("Warning: Could not find Yfirlit 2 section, using page 11 onwards")
-        # Page 11 is approximately line 250-300
         start_idx = 250
 
-    return ''.join(lines[start_idx:])
+    text = ''.join(lines[start_idx:])
+    return text
+
+
 
 
 def find_area_headers(text):
@@ -74,67 +75,126 @@ def find_area_headers(text):
 
 
 def find_and_extract_institutions(text, area_headers):
-    """Find all XX-XXX institution codes and extract data."""
-    institution_pattern = r'^.*?(\d{2})-(\d{3})\s+([^\n]+)$'
+    """Extract institutions by line-by-line parsing with area context tracking.
 
+    Handles multi-line institutions by accumulating lines until we have 7 number groups.
+    Properly assigns institutions to areas based on area header detection.
+    """
     institutions_by_area = {}
 
-    for match in re.finditer(institution_pattern, text, re.MULTILINE):
-        inst_pos = match.start()
-        code = f"{match.group(1)}-{match.group(2)}"
-        rest_of_line = match.group(3)
+    lines = text.split('\n')
+    current_block = []
+    current_area = None
 
-        # Find which area this institution belongs to
-        area_code = None
-        for area in area_headers:
-            if inst_pos > area['pos']:
-                area_code = area['code']
-            else:
-                break
+    for line in lines:
+        # Clean line: collapse spaces/dots to single space
+        cleaned = re.sub(r'[\s.]+', ' ', line).strip()
 
-        if not area_code:
+        if not cleaned:
+            # Empty line - finalize block if we have one
+            if current_block and len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+                if current_area:
+                    _save_institution(current_block, current_area, institutions_by_area)
+                current_block = []
             continue
 
-        # Extract institution name and amounts
-        digit_pos = None
-        for i, c in enumerate(rest_of_line):
-            if c.isdigit():
-                digit_pos = i
-                break
+        # Check if this is an area header line (01-35 followed by space and name)
+        # Capture area name up to the first digit
+        area_match = re.match(r'^(0[1-9]|[12][0-9]|3[0-5])(?!\.\d)\s+([^0-9]+)', cleaned)
+        if area_match:
+            # New area header
+            if current_block and len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+                if current_area:
+                    _save_institution(current_block, current_area, institutions_by_area)
+                current_block = []
 
-        if digit_pos is None:
+            area_code = area_match.group(1)
+            area_name = area_match.group(2)
+            current_area = {'code': area_code, 'name': area_name}
             continue
 
-        name_section = rest_of_line[:digit_pos].rstrip()
-        amounts_section = rest_of_line[digit_pos:].strip()
-
-        # Remove trailing dots and spaces (used as layout filler in PDF)
-        name = re.sub(r'[\s.]+$', '', name_section).strip()
-
-        if not name:
+        if not current_area:
             continue
 
-        amount_pattern = r'[\d.,]+'
-        amounts = re.findall(amount_pattern, amounts_section)
+        # Check if line starts with institution code
+        if re.match(r'^\d{2}-\d{3}', cleaned):
+            # Start of new institution
+            if current_block and len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+                _save_institution(current_block, current_area, institutions_by_area)
+            current_block = [cleaned]
+        elif current_block:
+            # Continuation of current institution
+            current_block.append(cleaned)
 
-        if len(amounts) >= 5:
-            heildarfjarhemild_str = amounts[4]
-            heildarfjarhemild_str = heildarfjarhemild_str.replace('.', '').replace(',', '.')
-            try:
-                heildarfjarhemild = float(heildarfjarhemild_str)
+            # Check if we have enough numbers to finalize
+            if len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+                _save_institution(current_block, current_area, institutions_by_area)
+                current_block = []
 
-                if area_code not in institutions_by_area:
-                    institutions_by_area[area_code] = []
-
-                institutions_by_area[area_code].append({
-                    'code': code,
-                    'name': name,
-                    'heildarfjarhemild': heildarfjarhemild
-                })
-            except ValueError:
-                pass
+    # Finalize last block
+    if current_block and len(re.findall(r'[\d.,]+', ' '.join(current_block))) >= 7:
+        if current_area:
+            _save_institution(current_block, current_area, institutions_by_area)
 
     return institutions_by_area
+
+
+def _save_institution(block, area, institutions_by_area):
+    """Save a single institution from a block of lines."""
+    if not block or not area:
+        return
+
+    full_text = ' '.join(block)
+
+    # Extract code from first line
+    code_match = re.match(r'^(\d{2})-(\d{3})', block[0])
+    if not code_match:
+        return
+
+    code = f"{code_match.group(1)}-{code_match.group(2)}"
+
+    # Extract name (everything in first line after code until first digit)
+    first_line = block[0]
+    code_end = first_line.find(code) + len(code)
+    after_code = first_line[code_end:].strip()
+
+    digit_pos = None
+    for i, c in enumerate(after_code):
+        if c.isdigit():
+            digit_pos = i
+            break
+
+    if digit_pos is None:
+        return
+
+    name = after_code[:digit_pos].strip()
+    if not name:
+        return
+
+    # Extract amounts - the last one is heildarfjárheimild (total budget authority)
+    amounts = re.findall(r'[\d.,]+', full_text)
+    if len(amounts) < 7:
+        return
+
+    # The last 7 numbers are the 7 budget columns (we only want the last one)
+    heildarfjarhemild_str = amounts[-1]
+    heildarfjarhemild_str = heildarfjarhemild_str.replace('.', '').replace(',', '.')
+
+    try:
+        heildarfjarhemild = float(heildarfjarhemild_str)
+    except ValueError:
+        return
+
+    # Assign to area
+    area_code = area['code']
+    if area_code not in institutions_by_area:
+        institutions_by_area[area_code] = []
+
+    institutions_by_area[area_code].append({
+        'code': code,
+        'name': name,
+        'heildarfjarhemild': heildarfjarhemild
+    })
 
 
 def build_institution_data(area_headers, institutions_by_area):
