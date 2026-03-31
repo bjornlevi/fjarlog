@@ -331,6 +331,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
 <script>
+    // Prefix for API calls (set by Flask/Jinja2)
+    const PREFIX = '{{ PREFIX }}';
+
     let currentMode = 'comparison';
     let selectedYear = null;
     let chartInstance = null;
@@ -451,7 +454,7 @@
         document.getElementById('error').classList.add('hidden');
         document.getElementById('table-body').innerHTML = '';
 
-        fetch(`/api/malefnasvid?year=${year}`)
+        fetch(`${PREFIX}/api/malefnasvid?year=${year}`)
             .then(response => {
                 if (!response.ok) throw new Error('Network error');
                 return response.json();

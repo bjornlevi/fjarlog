@@ -219,6 +219,9 @@
 </div>
 
 <script>
+    // Prefix for API calls (set by Flask/Jinja2)
+    const PREFIX = '{{ PREFIX }}';
+
     let selectedYear = null;
     let inflationEnabled = false;
 
@@ -269,7 +272,7 @@
         document.getElementById('data-table').classList.add('hidden');
 
         // Build API URL with inflation adjustment if enabled
-        let apiUrl = `/api/plan?year=${year}`;
+        let apiUrl = `${PREFIX}/api/plan?year=${year}`;
         if (inflationEnabled) {
             // Adjust to current year (2026)
             apiUrl += '&adjust_inflation_to=2026';

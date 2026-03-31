@@ -300,6 +300,8 @@
 </div>
 
 <script>
+    // Prefix for API calls (set by Flask/Jinja2)
+    const PREFIX = '{{ PREFIX }}';
     const areaCode = '{{ area_code }}';
     let inflationAdjusted = false;
     let allYearsData = {};
@@ -308,7 +310,7 @@
         const container = document.getElementById('institutions-container');
 
         try {
-            const response = await fetch(`/api/malefnasvid/${areaCode}/institutions`);
+            const response = await fetch(`${PREFIX}/api/malefnasvid/${areaCode}/institutions`);
             if (!response.ok) {
                 container.innerHTML = '<p class="no-data">Engin gögn til fyrir þetta málefnasvið.</p>';
                 return;
