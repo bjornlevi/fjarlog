@@ -161,6 +161,21 @@ def adjust_for_inflation(value, year_from, year_to):
     return value * factor
 
 
+@app.route("/_debug")
+def debug():
+    """Debug route to show environ values."""
+    from flask import request as flask_request
+    return jsonify({
+        'SCRIPT_NAME': flask_request.environ.get('SCRIPT_NAME', ''),
+        'PATH_INFO': flask_request.environ.get('PATH_INFO', ''),
+        'HTTP_X_SCRIPT_NAME': flask_request.environ.get('HTTP_X_SCRIPT_NAME', ''),
+        'REQUEST_URI': f"{flask_request.environ.get('SCRIPT_NAME', '')}{flask_request.environ.get('PATH_INFO', '')}",
+        'url': flask_request.url,
+        'base_url': flask_request.base_url,
+        'path': flask_request.path,
+    })
+
+
 @app.route("/")
 def index():
     """Home page with budget overview."""
