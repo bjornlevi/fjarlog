@@ -4,6 +4,70 @@
 
 {% block extra_css %}
 <style>
+    .area-navigation {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: #f5f5f5;
+        border-radius: 4px;
+        border-left: 4px solid #0066cc;
+    }
+
+    .area-navigation-title {
+        margin: 0 0 1rem 0;
+        color: #1a3a3a;
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .area-buttons-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .area-button {
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #ccc;
+        background: white;
+        color: #333;
+        text-decoration: none;
+        font-size: 0.85rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .area-button:hover {
+        border-color: #0066cc;
+        background: #f0f6ff;
+        color: #0066cc;
+        box-shadow: 0 2px 4px rgba(0, 102, 204, 0.15);
+    }
+
+    .area-button.active {
+        background: #0066cc;
+        color: white;
+        border-color: #0066cc;
+        font-weight: 600;
+        box-shadow: 0 2px 6px rgba(0, 102, 204, 0.3);
+    }
+
+    .area-button-code {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .area-button-name {
+        font-size: 0.75rem;
+        opacity: 0.9;
+    }
+
     .area-header {
         margin: 1.5rem 0;
     }
@@ -161,6 +225,21 @@
 {% block content %}
 <div class="container">
     <a href="/comparison" class="back-link">← Til baka á samanburðinn</a>
+
+    <!-- Málefnasvið Navigation -->
+    {% if all_areas %}
+    <div class="area-navigation">
+        <h3 class="area-navigation-title">Málefnasvið</h3>
+        <div class="area-buttons-grid">
+            {% for area in all_areas %}
+            <a href="/malefnasvid/{{ area.code }}" class="area-button{% if area.code == area_code %} active{% endif %}">
+                <span class="area-button-code">{{ area.code }}</span>
+                <span class="area-button-name">{{ area.name[:20] }}{% if area.name|length > 20 %}…{% endif %}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <div class="area-header">
         <div class="area-title">

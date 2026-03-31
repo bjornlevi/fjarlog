@@ -376,10 +376,15 @@ def malefnasvid_detail(area_code):
     # Get area name from first row
     area_name = area_data.iloc[0]["malefnasvid"]
 
+    # Get all unique areas for navigation buttons
+    all_areas = df_institutions.drop_duplicates("malefnasvid_nr")[["malefnasvid_nr", "malefnasvid"]].sort_values("malefnasvid_nr")
+    areas_list = [{"code": row["malefnasvid_nr"], "name": row["malefnasvid"]} for _, row in all_areas.iterrows()]
+
     return render_template(
         "malefnasvid_detail.html",
         area_code=area_code,
         area_name=area_name,
+        all_areas=areas_list,
     )
 
 
