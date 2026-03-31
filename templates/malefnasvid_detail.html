@@ -233,7 +233,7 @@
         <h3 class="area-navigation-title">Málefnasvið</h3>
         <div class="area-buttons-grid">
             {% for area in all_areas %}
-            <a href="/malefnasvid/{{ area.code }}" class="area-button{% if area.code == area_code %} active{% endif %}" title="{{ area.name }}">
+            <a href="/malefnasvid/{{ area.code }}" class="area-button{% if area.code == area_code %} active{% endif %}" title="{{ area.name }}" data-area="{{ area.code }}">
                 <span class="area-button-code">{{ area.code }}</span>
                 <span class="area-button-name">{{ area.name[:8] }}{% if area.name|length > 8 %}…{% endif %}</span>
             </a>
@@ -263,6 +263,23 @@
     const areaCode = '{{ area_code }}';
     let availableYears = [];
     let selectedYear = null;
+
+    // Get year from URL parameters if present
+    function getYearFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const yearParam = params.get('year');
+        return yearParam ? parseInt(yearParam) : null;
+    }
+
+    // Add year parameter to area buttons for preservation
+    function updateAreaButtonLinks() {
+        if (selectedYear) {
+            document.querySelectorAll('.area-button').forEach(btn => {
+                const areaCode = btn.getAttribute('data-area');
+                btn.href = `/malefnasvid/${areaCode}?year=${selectedYear}`;
+            });
+        }
+    }
 
     async function loadYears() {
         try {
@@ -302,13 +319,23 @@
                 buttonsContainer.appendChild(button);
             });
 
-            if (availableYears.length > 0) {
-                selectYear(availableYears[0]);
-            }
+            // Try to restore year from URL, otherwise use most recent
+            const urlYear = getYearFromURL();
+            const yearToSelect = (urlYear && availableYears.includes(urlYear)) ? urlYear : availableYears[0];
+            selectYear(yearToSelect);
         } catch (error) {
             console.error('Error loading years:', error);
         }
     }
+
+    // Update area buttons with year parameter on page load
+    window.addEventListener('load', () => {
+        const urlYear = getYearFromURL();
+        if (urlYear) {
+            selectedYear = urlYear;
+            updateAreaButtonLinks();
+        }
+    });
 
     function selectYear(year) {
         selectedYear = year;
@@ -317,6 +344,9 @@
         document.querySelectorAll('.year-button').forEach(btn => {
             btn.classList.toggle('active', btn.textContent === year.toString());
         });
+
+        // Update area button links to preserve year
+        updateAreaButtonLinks();
 
         loadInstitutionData(year);
     }
