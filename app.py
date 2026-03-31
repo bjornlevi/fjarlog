@@ -4,6 +4,7 @@ Flask web application for Icelandic government budget comparison.
 Displays and compares budget data across bills, plans, and accounts.
 """
 
+import os
 from flask import Flask, render_template, request, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 from pathlib import Path
@@ -17,32 +18,30 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Custom WSGI middleware to handle X-Script-Name header from reverse proxy
-class ScriptNameMiddleware:
-    def __init__(self, app):
-        self.app = app
+# URL prefix for reverse proxy deployment (same as opin-gogn pattern)
+PREFIX = os.getenv("PREFIX", "").rstrip("/")
 
-    def __call__(self, environ, start_response):
-        script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
-        path_info = environ.get('PATH_INFO', '')
+if PREFIX:
+    app.config["APPLICATION_ROOT"] = PREFIX
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
-        # Debug logging
-        logger.info(f"ScriptNameMiddleware: X-Script-Name={script_name}, PATH_INFO={path_info}")
+    # Custom middleware to handle prefix stripping (same as opin-gogn)
+    class PrefixMiddleware:
+        def __init__(self, app, prefix: str):
+            self.app = app
+            self.prefix = prefix
 
-        if script_name:
-            environ['SCRIPT_NAME'] = script_name
-            # Strip the script name from the beginning of PATH_INFO
+        def __call__(self, environ, start_response):
+            script_name = self.prefix
+            path_info = environ.get("PATH_INFO", "")
             if path_info.startswith(script_name):
-                environ['PATH_INFO'] = path_info[len(script_name):]
-                if not environ['PATH_INFO']:
-                    environ['PATH_INFO'] = '/'
-                logger.info(f"  → Stripped to PATH_INFO={environ['PATH_INFO']}")
+                environ["SCRIPT_NAME"] = script_name
+                environ["PATH_INFO"] = path_info[len(script_name):] or "/"
+            return self.app(environ, start_response)
 
-        return self.app(environ, start_response)
-
-# Apply middleware to handle reverse proxy headers
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
-app.wsgi_app = ScriptNameMiddleware(app.wsgi_app)
+    app.wsgi_app = PrefixMiddleware(app.wsgi_app, PREFIX)
+else:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
 # Custom Jinja2 filter for Icelandic number formatting
 def format_number_is(value):
@@ -159,21 +158,6 @@ def adjust_for_inflation(value, year_from, year_to):
 
     factor = calculate_cumulative_inflation(year_from, year_to)
     return value * factor
-
-
-@app.route("/_debug")
-def debug():
-    """Debug route to show environ values."""
-    from flask import request as flask_request
-    return jsonify({
-        'SCRIPT_NAME': flask_request.environ.get('SCRIPT_NAME', ''),
-        'PATH_INFO': flask_request.environ.get('PATH_INFO', ''),
-        'HTTP_X_SCRIPT_NAME': flask_request.environ.get('HTTP_X_SCRIPT_NAME', ''),
-        'REQUEST_URI': f"{flask_request.environ.get('SCRIPT_NAME', '')}{flask_request.environ.get('PATH_INFO', '')}",
-        'url': flask_request.url,
-        'base_url': flask_request.base_url,
-        'path': flask_request.path,
-    })
 
 
 @app.route("/")
