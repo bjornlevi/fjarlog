@@ -26,7 +26,7 @@ class ScriptNameMiddleware:
         script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
         if script_name:
             environ['SCRIPT_NAME'] = script_name
-            environ['PATH_INFO'] = environ.get('PATH_INFO', '').lstrip('/')
+            # Don't modify PATH_INFO - nginx already stripped the prefix
         return self.app(environ, start_response)
 
 # Apply middleware to handle reverse proxy headers
