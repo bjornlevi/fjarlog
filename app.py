@@ -17,8 +17,21 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Handle X-Script-Name header from reverse proxy (for /fjarlog prefix)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_script_name=1)
+# Custom WSGI middleware to handle X-Script-Name header from reverse proxy
+class ScriptNameMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
+        if script_name:
+            environ['SCRIPT_NAME'] = script_name
+            environ['PATH_INFO'] = environ.get('PATH_INFO', '').lstrip('/')
+        return self.app(environ, start_response)
+
+# Apply middleware to handle reverse proxy headers
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+app.wsgi_app = ScriptNameMiddleware(app.wsgi_app)
 
 # Custom Jinja2 filter for Icelandic number formatting
 def format_number_is(value):
